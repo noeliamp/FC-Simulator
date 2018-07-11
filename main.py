@@ -5,15 +5,18 @@ from Scenario import Scenario
 import numpy as np
 import json
 from collections import OrderedDict
-import sys
+import sys, os
 from random import shuffle
 import uuid
+import progressbar
+from time import sleep
 
-orig_stdout = sys.stdout
-f = open('out.txt', 'w')
-sys.stdout = f
+# orig_stdout = sys.stdout
+# # f = open(os.devnull, 'w')
+# f = open('out.txt', 'w')
+# sys.stdout = f
 
-file = open('dump.txt', 'w')
+# file = open('dump.txt', 'w') 
 
 with open('input.json') as f:
     data = json.load(f)
@@ -55,6 +58,11 @@ if num_users_distribution == "poisson":
 else:
     num_users=density
 
+# progress bar
+bar = progressbar.ProgressBar(maxval=num_slots, \
+    widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+bar.start()
+
 # This creates the scenario defined in the input script
 scenario = Scenario(radius_of_interest, radius_of_replication, radius_of_persistence, max_area, user_generation_distribution, speed_distribution,pause_distribution,
                     min_pause,max_pause, min_speed,max_speed,delta,radius_of_tx,usrList,channel_rate,num_users,min_flight_length,max_flight_length,
@@ -83,14 +91,21 @@ zoi = []
 rep = []
 per = []
 out = [] 
+zoi_users = []
+rep_users = []
+per_users = []
+out_users = []
 
-file.write('Number of users: '+ str(scenario.num_users) + '\n')
-file.write('SLOT '+ ' ZOI '+' REP '+ ' PER '+ ' OUT ' '\n')
+# file.write('Number of users: '+ str(scenario.num_users) + '\n')
+# file.write('SLOT'+ ' ZOI'+' REP'+ ' PER'+ ' OUT' '\n')
 
+# Initial call to print 0% progress
 for i in range(0,num_slots):
+    bar.update(i+1)
+    sleep(0.1)
     slots.append(i)
     # Run mobility for every slot
-    print ('\n Lets run mobility slot: %d' % i)
+    # print ('\n Lets run mobility slot: %d' % i)
     # Nobody is BUSY at the beggining of a slot
     for l in range(0,num_users):
         scenario.usrList[l].buys = False
@@ -100,7 +115,7 @@ for i in range(0,num_slots):
 
 
     # Run contacts for every slot after mobility, at the beggining of every slot every user is available --> busy = Flase
-    print ('\n Lets run contacts slot: %d' % i)
+    # print ('\n Lets run contacts slot: %d' % i)
     for k in range(0,num_users):
         scenario.usrList[k].busy = False
 
@@ -112,44 +127,65 @@ for i in range(0,num_slots):
 
 
     ################################## Dump data per slot in a file ############################################
+    
     zoi_counter= 0
     per_counter = 0
     rep_counter= 0
     out_counter = 0
+    zoi_users_counter = 0
+    per_users_counter = 0
+    rep_users_counter = 0
+    out_users_counter= 0
     for k in range(0,num_users):
-        if scenario.usrList[k].zone == "interest" and len(scenario.usrList[k].messages_list) == 1:
-            zoi_counter = zoi_counter + 1
+        if scenario.usrList[k].zone == "interest":
+            zoi_users_counter = zoi_users_counter + 1
+            if len(scenario.usrList[k].messages_list) == 1:
+                zoi_counter = zoi_counter + 1
         
     for k in range(0,num_users):
-        if scenario.usrList[k].zone == "replication" and len(scenario.usrList[k].messages_list) == 1:
-            rep_counter = rep_counter + 1
+        if scenario.usrList[k].zone == "replication":
+            rep_users_counter = rep_users_counter + 1
+            if len(scenario.usrList[k].messages_list) == 1:
+                rep_counter = rep_counter + 1
         
     for k in range(0,num_users):
-        if scenario.usrList[k].zone == "persistence" and len(scenario.usrList[k].messages_list) == 1:
-            per_counter = per_counter + 1
+        if scenario.usrList[k].zone == "persistence":
+            per_users_counter = per_users_counter + 1
+            if len(scenario.usrList[k].messages_list) == 1:
+                per_counter = per_counter + 1
         
     for k in range(0,num_users):
-        if scenario.usrList[k].zone == "outer" and len(scenario.usrList[k].messages_list) == 1:
-            out_counter = out_counter + 1
+        if scenario.usrList[k].zone == "outer":
+            out_users_counter = out_users_counter + 1
+            if len(scenario.usrList[k].messages_list) == 1:
+                out_counter = out_counter + 1
         
     zoi.append(zoi_counter)
     rep.append(rep_counter)
     per.append(per_counter)
     out.append(out_counter)
+    zoi_users.append(zoi_users_counter)
+    rep_users.append(rep_users_counter)
+    per_users.append(per_users_counter)
+    out_users.append(out_users_counter)
 
     # for i in range(0,num_users): 
         # file.write('%i %i %i %i' % (zoi[i], rep[i], per[i], out[i]))
     # file.write(str(zoi_counter) + ' - ' + str(rep_counter) + ' - ' + str(per_counter) + ' - ' + str(out_counter) + '\n')
-print(len(slots),len(zoi),len(rep),len(per),len(out))
-np.savetxt('dump.txt', np.column_stack((slots, zoi, rep, per, out)), fmt="%i %i %i %i %i")
+
+
+
+np.savetxt('dump.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per, out_users, out)), fmt="%i %i %i %i %i %i %i %i %i")
 ###################### SELECT A FUNCTION TO DUMP DATA ###########################
-# dump = Dump(scenario)
-# dump.userLastPosition()
+dump = Dump(scenario)
+dump.userLastPosition()
 # dump.infoPerZone()
 
 
 ########################## End of printing ######################################
-sys.stdout = orig_stdout
-f.close()
+# sys.stdout = orig_stdout
+# f.close()
 
-file.close()
+# file.close()
+
+bar.finish()
