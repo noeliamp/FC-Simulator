@@ -1,0 +1,32 @@
+def userMobilityEasy(self):
+        print ("My id is ", self.id)
+        prevPosX = self.posX
+        prevPosY = self.posY
+        prb = numpy.random.uniform(0, 1)           
+        print("random number ", prb)
+        if prb<0.25:                            # pedestrian move to the right
+            self.posX = self.posX + self.scenario.delta_x
+            if self.posX > self.scenario.max_area:
+                self.posX = prevPosX;           
+        if prb>0.25 and prb<0.5:                # pedestrian move to the left
+            self.posX = self.posX - self.scenario.delta_x
+            if self.posX < self.scenario.max_area:
+                self.posX = prevPosX; 
+        if prb>0.5 and prb<0.75:                # pedestrian move to the north
+            self.posY = self.posY + self.scenario.delta_x
+            if self.posY > self.scenario.max_area:
+                self.posY = prevPosY; 
+        if prb>0.75:                            # pedestrian move to the south
+            self.posY = self.posY - self.scenario.delta_x
+            if self.posY < self.scenario.max_area:
+                self.posY = prevPosY; 
+        
+        self.calculateZone()
+        self.displayUser()
+
+
+              # We can think the Random Walk model as the specific Random Waypoint model with zero pause time. However, in the Random Walk model, the nodes change their 
+        # speed and direction at each time interval. For every new interval t, each node randomly and uniformly chooses its new direction zeta(t) from (0, 2pi]. 
+        # In similar way, the new speed follows a uniform distribution or a Guassian distribution from [zeta, Vmax]. Therefore, during time interval t, the node moves 
+        # with the velocity vector (v(t)coszeta(t), v(t)sinzeta(t)). If the node moves according to the above rules and reaches the boundary of simulation field, 
+        # the leaving node is bounced back to the simulation field with the angle of zeta(t) or pi−zeta(t), respectively. This effect is called border effect.
