@@ -41,8 +41,8 @@ class User:
         self.pause_counter = 1
         self.isPaused = False
         self.N12 = 100            # slots to reach target position (x2,y2) 
-        self.n = 1              # current slot within N12 for random waypoint
-        self.m = 1              # current slot for random Direction
+        self.n = 1                # current slot within N12 for random waypoint
+        self.m = 1                # current slot for random Direction
         self.rebound_counter = 0
         self.neighbours_list = []
         self.counter_list = []
@@ -61,6 +61,8 @@ class User:
         self.y_origin = 0
         self.failures_counter = 0
         self.attempts_counter = 0
+        self.connection_duration = 0
+        self.connection_duration_list = []
         self.calculateZone()
         # self.displayUser()
 
@@ -361,6 +363,8 @@ class User:
             # Once we have the list of neighbours, first check if there is a previous connection ongoing and the peer is still around
             if self.ongoing_conn == True and self.prev_peer in self.neighbours_list and self.prev_peer.zone != "outer" and self.prev_peer.zone != "persistence":
                 # print("I have a prev peer and it is still close. ", self.prev_peer.id)
+                self.connection_duration = self.connection_duration + 1
+                self.prev_peer.connection_duration = self.prev_peer.connection_duration + 1
                 # keep exchanging
                 self.db_exchange = False
                 self.prev_peer.db_exchange = False
@@ -371,6 +375,10 @@ class User:
                 # if my prev peer is not in my communication range or it is in zones outer/persistence we don't exchange data anymore
                 if self.ongoing_conn == True and (self.prev_peer not in self.neighbours_list or self.prev_peer.zone == "outer" or self.prev_peer.zone == "persistence"):
                     # print("I have a prev peer and it is far. ", self.prev_peer.id, self.prev_peer.zone)
+                    self.connection_duration_list.append(self.connection_duration)
+                    # self.prev_peer.connection_duration_list.append(self.prev_peer.connection_duration)
+                    self.connection_duration = 0
+                    self.prev_peer.connection_duration = 0
                     # If in previous slot we have exchanged bits from next messages we have to remove them from the used memory because we did't manage to
                     # exchange the whole message so we loose it.
                     reset_used_memory = 0
@@ -413,6 +421,8 @@ class User:
 
                     # print("Probability to exchange: ", self.prob, " to neighbour: ", neighbour.id)
                     if self.prob > 0.5:
+                        self.connection_duration = self.connection_duration + 1
+                        neighbour.connection_duration = neighbour.connection_duration +  1
                         # print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
                         # print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
                         self.exchange_size = 0
@@ -564,6 +574,10 @@ class User:
         # If everything has been exchanged, reset parameters
         if self.exchange_counter == self.exchange_size and neighbour.exchange_counter == neighbour.exchange_size:
             # print("ENTRO AQUI", self.exchange_counter, self.exchange_size,neighbour.exchange_counter, neighbour.exchange_size, self.used_memory, self.used_memory)
+            self.connection_duration_list.append(self.connection_duration)
+            # neighbour.connection_duration_list.append(neighbour.connection_duration)
+            self.connection_duration = 0
+            neighbour.connection_duration = 0
             self.ongoing_conn = False
             neighbour.ongoing_conn = False
             self.exchange_list = []

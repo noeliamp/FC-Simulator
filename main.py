@@ -10,6 +10,7 @@ from random import shuffle
 import uuid
 import progressbar
 from time import sleep
+import time
 
 # orig_stdout = sys.stdout
 # # f = open(os.devnull, 'w')
@@ -17,6 +18,8 @@ from time import sleep
 # sys.stdout = f
 
 # file = open('dump.txt', 'w') 
+
+t0 = time.time()
 
 with open('input.json') as f:
     data = json.load(f)
@@ -97,6 +100,7 @@ per_users = []
 out_users = []
 failures = []
 attempts = []
+connection_duration_list = []
 
 
 # file.write('Number of users: '+ str(scenario.num_users) + '\n')
@@ -134,6 +138,8 @@ for i in range(0,num_slots):
 
         failures_counter = failures_counter + scenario.usrList[k].failures_counter
         attempts_counter = attempts_counter +  scenario.usrList[k].attempts_counter
+        
+
 
 
 
@@ -182,6 +188,7 @@ for i in range(0,num_slots):
     failures.append(failures_counter)
     attempts.append(attempts_counter)
 
+
     # for i in range(0,num_users): 
         # file.write('%i %i %i %i' % (zoi[i], rep[i], per[i], out[i]))
     # file.write(str(zoi_counter) + ' - ' + str(rep_counter) + ' - ' + str(per_counter) + ' - ' + str(out_counter) + '\n')
@@ -190,11 +197,19 @@ for i in range(0,num_slots):
 
 np.savetxt('dump-30-100-200-250.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per, out_users, out,failures, attempts)), 
 fmt="%i %i %i %i %i %i %i %i %i %i %i")
+
+
+for k in range(0,num_users):
+    connection_duration_list.append(scenario.usrList[k].connection_duration_list)
+
+flat_list = [item for sublist in connection_duration_list for item in sublist]
+
+
+np.savetxt('connection-duration-list.txt', flat_list , fmt="%i")
 ###################### SELECT A FUNCTION TO DUMP DATA ###########################
 dump = Dump(scenario)
 dump.userLastPosition()
 # dump.infoPerZone()
-
 
 ########################## End of printing ######################################
 # sys.stdout = orig_stdout
@@ -203,3 +218,6 @@ dump.userLastPosition()
 # file.close()
 
 bar.finish()
+t1 = time.time()
+print("Lenght of connection duration list: %d" % len(flat_list))
+print ("Total time running: %s minutes" % str((t1-t0)/60))
