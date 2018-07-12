@@ -10,7 +10,7 @@ class User:
     
 
     def __init__(self, id, posX, posY, scenario, max_memory,max_message_size):
-        print ("Creating new user...")
+        # print ("Creating new user...")
         self.id = id
         self.scenario = scenario
         self.total_memory = np.random.uniform(1,max_memory) 
@@ -59,8 +59,10 @@ class User:
         self.vy = 0
         self.x_origin = 0
         self.y_origin = 0
+        self.failures_counter = 0
+        self.attempts_counter = 0
         self.calculateZone()
-        self.displayUser()
+        # self.displayUser()
 
 
     def displayUser(self):
@@ -278,7 +280,7 @@ class User:
                 # select an angle
                 randNum = np.random.uniform()
                 alpha = 360 * randNum *(math.pi/180)
-                alpha_deg = 360 * randNum
+                # alpha_deg = 360 * randNum
 
                 self.x_origin = self.x_list[-1]
                 self.y_origin = self.y_list[-1]
@@ -402,6 +404,7 @@ class User:
                             # print("I found a peer not busy and without ongoing connection.")
                             break
                 if neighbour != None:
+                    self.attempts_counter = self.attempts_counter + 1
                     # probability to exchange data with this neighbour
                     self.prob = np.random.uniform()
                     # hand shake needs to be changed to randint variable
@@ -451,6 +454,8 @@ class User:
                         # print("My exchange db size --> ", self.exchange_size, "Counter list", len(self.counter_list))
                         # print("Neighbour exchange db size --> ", neighbour.exchange_size, "Counter list", len(neighbour.counter_list))
                         self.exchangeData(neighbour)
+                    if self.prob < 0.5:
+                        self.failures_counter = self.failures_counter + 1
                     
     # method to check which DB is smaller and start exchanging it. 
     # At this point We have the messages to be exchange (exchange_list) and the total list sizes (exchange_size).

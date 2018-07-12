@@ -5,10 +5,10 @@ class Message:
     
 
     def __init__(self, id, max_message_size):
-        print ("Creating new message...")
+        # print ("Creating new message...")
         self.id = id
         self.size = np.random.randint(1,max_message_size) 
-        self.displayMessage()
+        # self.displayMessage()
 
 
     def displayMessage(self):

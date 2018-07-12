@@ -95,12 +95,17 @@ zoi_users = []
 rep_users = []
 per_users = []
 out_users = []
+failures = []
+attempts = []
+
 
 # file.write('Number of users: '+ str(scenario.num_users) + '\n')
 # file.write('SLOT'+ ' ZOI'+' REP'+ ' PER'+ ' OUT' '\n')
 
 # Initial call to print 0% progress
 for i in range(0,num_slots):
+    failures_counter = 0
+    attempts_counter = 0
     bar.update(i+1)
     sleep(0.1)
     slots.append(i)
@@ -122,7 +127,13 @@ for i in range(0,num_slots):
     # suffle users lists
     shuffle(scenario.usrList)
     for k in range(0,num_users):
+        scenario.usrList[k].failures_counter = 0
+        scenario.usrList[k].attempts_counter = 0
+        # run users contact
         scenario.usrList[k].userContact()
+
+        failures_counter = failures_counter + scenario.usrList[k].failures_counter
+        attempts_counter = attempts_counter +  scenario.usrList[k].attempts_counter
 
 
 
@@ -168,6 +179,8 @@ for i in range(0,num_slots):
     rep_users.append(rep_users_counter)
     per_users.append(per_users_counter)
     out_users.append(out_users_counter)
+    failures.append(failures_counter)
+    attempts.append(attempts_counter)
 
     # for i in range(0,num_users): 
         # file.write('%i %i %i %i' % (zoi[i], rep[i], per[i], out[i]))
@@ -175,7 +188,8 @@ for i in range(0,num_slots):
 
 
 
-np.savetxt('dump.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per, out_users, out)), fmt="%i %i %i %i %i %i %i %i %i")
+np.savetxt('dump-30-100-200-250.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per, out_users, out,failures, attempts)), 
+fmt="%i %i %i %i %i %i %i %i %i %i %i")
 ###################### SELECT A FUNCTION TO DUMP DATA ###########################
 dump = Dump(scenario)
 dump.userLastPosition()

@@ -4,7 +4,7 @@ class Scenario:
 
     def __init__(self, radius_of_interest, radius_of_replication, radius_of_persistence, max_area, user_generation_distribution, speed_distribution,pause_distribution,min_pause,max_pause,
     min_speed,max_speed,delta,radius_of_tx,usrList,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake):
-        print ("Creating new scenario...")
+        # print ("Creating new scenario...")
         self.radius_of_interest = radius_of_interest
         self.radius_of_replication = radius_of_replication
         self.radius_of_persistence = radius_of_persistence
@@ -27,7 +27,7 @@ class Scenario:
         self.max_flight_length = max_flight_length
         self.flight_length_distribution = flight_length_distribution
         self.hand_shake = hand_shake
-        self.displayScenario()
+        # self.displayScenario()
 
     def displayScenario(self):
         print("Radius of interest : ", self.radius_of_interest,  ", Radius of replication: ", self.radius_of_replication, 
