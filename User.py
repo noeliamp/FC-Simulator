@@ -464,7 +464,7 @@ class User:
                         # print("My exchange db size --> ", self.exchange_size, "Counter list", len(self.counter_list))
                         # print("Neighbour exchange db size --> ", neighbour.exchange_size, "Counter list", len(neighbour.counter_list))
                         self.exchangeData(neighbour)
-                    if self.prob < 0.5:
+                    if self.prob <= 0.5:
                         self.failures_counter = self.failures_counter + 1
                     
     # method to check which DB is smaller and start exchanging it. 
@@ -563,6 +563,7 @@ class User:
         self.scenario.used_mbs = 0
 
         # If any of the peers DB has not been totally exchanged we have to store the peer device to keep the connection for next slot
+        print(self.exchange_counter, self.exchange_size , neighbour.exchange_counter , neighbour.exchange_size)
         if self.exchange_counter < self.exchange_size or neighbour.exchange_counter < neighbour.exchange_size:
             self.prev_peer = neighbour
             # print(" PASSING NEIGHBOUR TO PREV DB", neighbour.id, self.prev_peer.id, neighbour == self.prev_peer)
@@ -576,6 +577,7 @@ class User:
             # print("ENTRO AQUI", self.exchange_counter, self.exchange_size,neighbour.exchange_counter, neighbour.exchange_size, self.used_memory, self.used_memory)
             self.connection_duration_list.append(self.connection_duration)
             # neighbour.connection_duration_list.append(neighbour.connection_duration)
+            print("Append")
             self.connection_duration = 0
             neighbour.connection_duration = 0
             self.ongoing_conn = False

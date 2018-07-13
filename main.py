@@ -12,10 +12,10 @@ import progressbar
 from time import sleep
 import time
 
-# orig_stdout = sys.stdout
-# # f = open(os.devnull, 'w')
-# f = open('out.txt', 'w')
-# sys.stdout = f
+orig_stdout = sys.stdout
+# f = open(os.devnull, 'w')
+f = open('out.txt', 'w')
+sys.stdout = f
 
 # file = open('dump.txt', 'w') 
 
@@ -133,13 +133,12 @@ for i in range(0,num_slots):
     for k in range(0,num_users):
         scenario.usrList[k].failures_counter = 0
         scenario.usrList[k].attempts_counter = 0
+
         # run users contact
         scenario.usrList[k].userContact()
 
         failures_counter = failures_counter + scenario.usrList[k].failures_counter
         attempts_counter = attempts_counter +  scenario.usrList[k].attempts_counter
-        
-
 
 
 
@@ -176,6 +175,8 @@ for i in range(0,num_slots):
             out_users_counter = out_users_counter + 1
             if len(scenario.usrList[k].messages_list) == 1:
                 out_counter = out_counter + 1
+
+    
         
     zoi.append(zoi_counter)
     rep.append(rep_counter)
@@ -193,8 +194,13 @@ for i in range(0,num_slots):
         # file.write('%i %i %i %i' % (zoi[i], rep[i], per[i], out[i]))
     # file.write(str(zoi_counter) + ' - ' + str(rep_counter) + ' - ' + str(per_counter) + ' - ' + str(out_counter) + '\n')
 
+for k in range(0,num_users):
+    if scenario.usrList[k].ongoing_conn == True:
+        scenario.usrList[k].connection_duration_list.append(scenario.usrList[k].connection_duration)
+        scenario.usrList[k].ongoing_conn = False
+        scenario.usrList[k].prev_peer.ongoing_conn = False
 
-
+        
 np.savetxt('dump-30-100-200-250.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per, out_users, out,failures, attempts)), 
 fmt="%i %i %i %i %i %i %i %i %i %i %i")
 
@@ -212,8 +218,8 @@ dump.userLastPosition()
 # dump.infoPerZone()
 
 ########################## End of printing ######################################
-# sys.stdout = orig_stdout
-# f.close()
+sys.stdout = orig_stdout
+f.close()
 
 # file.close()
 
