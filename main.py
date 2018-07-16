@@ -1,3 +1,4 @@
+from __future__ import division
 from User import User
 from Dump import Dump
 from Message import Message
@@ -101,18 +102,27 @@ out_users = []
 failures = []
 attempts = []
 connection_duration_list = []
+a = 0
+a_list = []
+a_avg_list = []
+a_avg_list_squared = []
+num_slots_counter = 0
+aux = 0
+th=0.15
+c = 0
 
-
-# file.write('Number of users: '+ str(scenario.num_users) + '\n')
-# file.write('SLOT'+ ' ZOI'+' REP'+ ' PER'+ ' OUT' '\n')
-
-# Initial call to print 0% progress
-for i in range(0,num_slots):
+# for i in range(0,num_slots):
+while c < num_slots and aux < th:
+    CI = 0
+    a_list = []
     failures_counter = 0
     attempts_counter = 0
-    bar.update(i+1)
+    bar.update(c+1)
     sleep(0.1)
-    slots.append(i)
+    slots.append(c)
+    num_slots_counter = num_slots_counter + 1
+    c = c + 1
+
     # Run mobility for every slot
     # print ('\n Lets run mobility slot: %d' % i)
     # Nobody is BUSY at the beggining of a slot
@@ -189,10 +199,39 @@ for i in range(0,num_slots):
     failures.append(failures_counter)
     attempts.append(attempts_counter)
 
+    # we add the current slot availability to the list a_list
+    print("num --> ",zoi_counter + rep_counter + per_counter)
+    print("denom--> ", zoi_users_counter+ rep_users_counter + per_users_counter)
+    a = (zoi_counter + rep_counter + per_counter)/(zoi_users_counter+rep_users_counter+per_users_counter)
+    a_list.append(a)
+    print(a)
 
-    # for i in range(0,num_users): 
-        # file.write('%i %i %i %i' % (zoi[i], rep[i], per[i], out[i]))
-    # file.write(str(zoi_counter) + ' - ' + str(rep_counter) + ' - ' + str(per_counter) + ' - ' + str(out_counter) + '\n')
+    if num_slots_counter == 20:
+        # Once we reach the desired number of slots per window, we compute the average of the availabilities for that window
+        avg = sum(a_list)/len(a_list)
+        a_avg_list.append(avg)
+        a_avg_list_squared.append(np.power(avg,2))
+        # compute the standard deviation up to that window
+        print("a_avg_list",a_avg_list)
+        print("a_avg_list_squared", a_avg_list_squared)
+        num = sum(a_avg_list_squared)-(np.power(sum(a_avg_list),2))/len(a_avg_list)
+        den = len(a_avg_list)-1   
+        if den != 0:
+            sd = np.sqrt(num/den)
+        else: 
+            sd = 0
+
+        # compute the confidence interval up to this window
+        min = a - ((1.96 * sd)/np.sqrt(len(a_avg_list)))
+        max = a + ((1.96 * sd)/np.sqrt(len(a_avg_list)))
+        CI = max - min
+        mi = sum(a_avg_list)/len(a_avg_list)
+        # variable to check if CI is smaller than a threshold (comparison in the while loop)
+        aux = CI/mi
+
+        print("avrg: ", avg, " sd: ", sd, " aux: ", aux)
+        num_slots_counter = 0
+        a_list = []
 
 for k in range(0,num_users):
     if scenario.usrList[k].ongoing_conn == True:
@@ -210,8 +249,8 @@ for k in range(0,num_users):
 
 flat_list = [item for sublist in connection_duration_list for item in sublist]
 
-
 np.savetxt('connection-duration-list.txt', flat_list , fmt="%i")
+
 ###################### SELECT A FUNCTION TO DUMP DATA ###########################
 dump = Dump(scenario)
 dump.userLastPosition()
@@ -220,8 +259,6 @@ dump.userLastPosition()
 ########################## End of printing ######################################
 sys.stdout = orig_stdout
 f.close()
-
-# file.close()
 
 bar.finish()
 t1 = time.time()
