@@ -63,6 +63,7 @@ class User:
         self.attempts_counter = 0
         self.connection_duration = 0
         self.connection_duration_list = []
+        self.iHadMessage = False
         self.calculateZone()
         # self.displayUser()
 
@@ -80,6 +81,8 @@ class User:
         if pos < np.power(self.scenario.radius_of_replication,2):
             self.zone= "replication"
         if  pos < np.power(self.scenario.radius_of_interest,2):
+            if self.zone != "interest" and len(self.messages_list) == 1:
+                self.iHadMessage = True
             self.zone = "interest"
         if pos > np.power(self.scenario.radius_of_persistence,2):
             self.zone = "outer"
@@ -498,8 +501,10 @@ class User:
                         # print("I send one bit: ", self.exchange_counter)
                         # print("used memory: ", neighbour.used_memory) 
                         # print(self.scenario.mbs, self.scenario.used_mbs)
-                    
+
+                self.scenario.used_mbs_per_slot.append(self.scenario.used_mbs)   
                 # print("Now we continue with Neigbours db", neighbour.exchange_size)
+                cou = 0
                 if neighbour.exchange_size == 0:
                     neighbour.db_exchange = True
                 else:
@@ -508,10 +513,12 @@ class User:
                         self.used_memory = self.used_memory + 1
                         neighbour.scenario.used_mbs = neighbour.scenario.used_mbs + 1
                         neighbour.db_exchange = True  
+                        cou = cou + 1
+                    print("ENTRO EN COU",cou)
                         # print("Neighbour sends me one bit: ", neighbour.exchange_counter)
                         # print("used memory: ", self.used_memory)
                         # print(self.scenario.mbs, self.scenario.used_mbs)
-
+                neighbour.scenario.used_mbs_per_slot.append(cou)
             if neighbour.exchange_size < self.exchange_size and neighbour.db_exchange is False:
                 # print("Neighbour db is smaller than mine", neighbour.exchange_size)
                 if neighbour.exchange_size == 0:
@@ -525,8 +532,9 @@ class User:
                         # print("Neighbour sends me one bit: ", neighbour.exchange_counter)
                         # print("used memory: ", self.used_memory)
                         # print(self.scenario.mbs, self.scenario.used_mbs)
-
+                neighbour.scenario.used_mbs_per_slot.append(self.scenario.used_mbs)
                 # print("Now we continue with my db", self.exchange_size)
+                cou= 0
                 if self.exchange_size == 0:
                     self.db_exchange = True
                 else:
@@ -535,10 +543,12 @@ class User:
                         neighbour.used_memory = neighbour.used_memory + 1
                         self.scenario.used_mbs = self.scenario.used_mbs + 1
                         self.db_exchange = True  
+                        cou = cou + 1
+                    print("ENTRO EN COU", cou)
                         # print("I send one bit: ", self.exchange_counter)
                         # print("used memory: ", neighbour.used_memory)
                         # print(self.scenario.mbs, self.scenario.used_mbs)
-            
+                self.scenario.used_mbs_per_slot.append(cou)
             # Now we exchange the db based on the already exchanged bytes of messages
             # print("LEEEEEEEN--> ", len(self.counter_list),len(neighbour.counter_list), len(self.exchange_list) , len(neighbour.exchange_list) )
             if len(self.exchange_list) > 0:

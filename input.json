@@ -23,5 +23,6 @@
 "min_flight_length": 10,
 "max_flight_length": 110,
 "flight_length_distribution" : "none",
-"hand_shake":4
+"hand_shake":4,
+"window_size":1
 }

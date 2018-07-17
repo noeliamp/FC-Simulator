@@ -49,6 +49,7 @@ min_flight_length = data["min_flight_length"]
 max_flight_length = data["max_flight_length"]
 flight_length_distribution = data["flight_length_distribution"]
 hand_shake = data["hand_shake"]
+window_size = data["window_size"]
 
     
 
@@ -102,13 +103,14 @@ out_users = []
 failures = []
 attempts = []
 connection_duration_list = []
+iHadMessage_list = []
 a = 0
 a_list = []
 a_avg_list = []
 a_avg_list_squared = []
 num_slots_counter = 0
 aux = 0
-th=0.15
+th=0.4
 c = 0
 
 # for i in range(0,num_slots):
@@ -117,6 +119,7 @@ while c < num_slots and aux < th:
     a_list = []
     failures_counter = 0
     attempts_counter = 0
+    iHadMessage_counter = 0
     bar.update(c+1)
     sleep(0.1)
     slots.append(c)
@@ -161,7 +164,9 @@ while c < num_slots and aux < th:
     zoi_users_counter = 0
     per_users_counter = 0
     rep_users_counter = 0
-    out_users_counter= 0
+    out_users_counter = 0
+    iHadMessage_counter = 0
+
     for k in range(0,num_users):
         if scenario.usrList[k].zone == "interest":
             zoi_users_counter = zoi_users_counter + 1
@@ -186,8 +191,11 @@ while c < num_slots and aux < th:
             if len(scenario.usrList[k].messages_list) == 1:
                 out_counter = out_counter + 1
 
+    for k in range(0,num_users):
+        if scenario.usrList[k].iHadMessage == True:
+            iHadMessage_counter = iHadMessage_counter + 1
+            scenario.usrList[k].iHadMessage = False
     
-        
     zoi.append(zoi_counter)
     rep.append(rep_counter)
     per.append(per_counter)
@@ -198,22 +206,19 @@ while c < num_slots and aux < th:
     out_users.append(out_users_counter)
     failures.append(failures_counter)
     attempts.append(attempts_counter)
+    iHadMessage_list.append(iHadMessage_counter)
 
     # we add the current slot availability to the list a_list
-    print("num --> ",zoi_counter + rep_counter + per_counter)
-    print("denom--> ", zoi_users_counter+ rep_users_counter + per_users_counter)
     a = (zoi_counter + rep_counter + per_counter)/(zoi_users_counter+rep_users_counter+per_users_counter)
     a_list.append(a)
     print(a)
 
-    if num_slots_counter == 20:
+    if num_slots_counter == window_size/delta:
         # Once we reach the desired number of slots per window, we compute the average of the availabilities for that window
         avg = sum(a_list)/len(a_list)
         a_avg_list.append(avg)
         a_avg_list_squared.append(np.power(avg,2))
         # compute the standard deviation up to that window
-        print("a_avg_list",a_avg_list)
-        print("a_avg_list_squared", a_avg_list_squared)
         num = sum(a_avg_list_squared)-(np.power(sum(a_avg_list),2))/len(a_avg_list)
         den = len(a_avg_list)-1   
         if den != 0:
@@ -226,7 +231,7 @@ while c < num_slots and aux < th:
         max = a + ((1.96 * sd)/np.sqrt(len(a_avg_list)))
         CI = max - min
         mi = sum(a_avg_list)/len(a_avg_list)
-        # variable to check if CI is smaller than a threshold (comparison in the while loop)
+        # variable to check if next point is smaller than a threshold (comparison in the while loop)
         aux = CI/mi
 
         print("avrg: ", avg, " sd: ", sd, " aux: ", aux)
@@ -239,9 +244,13 @@ for k in range(0,num_users):
         scenario.usrList[k].ongoing_conn = False
         scenario.usrList[k].prev_peer.ongoing_conn = False
 
-        
-np.savetxt('dump-30-100-200-250.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per, out_users, out,failures, attempts)), 
-fmt="%i %i %i %i %i %i %i %i %i %i %i")
+avg_used_mbs_per_node = sum(scenario.used_mbs_per_slot)/len(scenario.used_mbs_per_slot)
+print(scenario.used_mbs_per_slot)
+print(len(scenario.used_mbs_per_slot),num_slots)
+print(avg_used_mbs_per_node)
+print(msg1.size)
+np.savetxt('dump-30-100-200-250.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per, out_users, out,failures, attempts,iHadMessage_list)), 
+fmt="%i %i %i %i %i %i %i %i %i %i %i %i")
 
 
 for k in range(0,num_users):

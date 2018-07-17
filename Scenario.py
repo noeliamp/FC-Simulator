@@ -27,6 +27,7 @@ class Scenario:
         self.max_flight_length = max_flight_length
         self.flight_length_distribution = flight_length_distribution
         self.hand_shake = hand_shake
+        self.used_mbs_per_slot = []
         # self.displayScenario()
 
     def displayScenario(self):
