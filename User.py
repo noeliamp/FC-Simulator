@@ -63,7 +63,7 @@ class User:
         self.attempts_counter = 0
         self.connection_duration = 0
         self.connection_duration_list = []
-        self.iHadMessage = False
+        self.iHadMessage = 0
         self.calculateZone()
         # self.displayUser()
 
@@ -81,8 +81,9 @@ class User:
         if pos < np.power(self.scenario.radius_of_replication,2):
             self.zone= "replication"
         if  pos < np.power(self.scenario.radius_of_interest,2):
+            self.iHadMessage = 1
             if self.zone != "interest" and len(self.messages_list) == 1:
-                self.iHadMessage = True
+                self.iHadMessage = 2
             self.zone = "interest"
         if pos > np.power(self.scenario.radius_of_persistence,2):
             self.zone = "outer"
