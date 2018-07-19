@@ -10,7 +10,7 @@ class Dump:
         self.scenario= scenario
 
     ####### last user's position
-    def userLastPosition(self):
+    def userLastPosition(self,uid):
         x = []
         y = []
         for i in range(0,self.scenario.num_users):
@@ -19,7 +19,7 @@ class Dump:
 
         # print(x)
         # print(y)
-        file = open("userLastPosition.txt", "w")
+        file = open(str(uid) +'/userLastPosition.txt', "w")
         file.write(json.dumps(x))
         file.write(json.dumps("&"))
         file.write(json.dumps(y))

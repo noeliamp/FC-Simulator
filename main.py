@@ -9,12 +9,16 @@ from collections import OrderedDict
 import sys, os
 from random import shuffle
 import uuid
-import progressbar
+# import progressbar
 from time import sleep
 import time
+import uuid
+import os
+import base64
+import hashlib
 
 t0 = time.time()
-
+uid = base64.urlsafe_b64encode(hashlib.md5(os.urandom(128)).digest())[:8]
 with open('input.json') as f:
     data = json.load(f)
 
@@ -44,19 +48,23 @@ flight_length_distribution = data["flight_length_distribution"]
 hand_shake = data["hand_shake"]
 window_size = data["window_size"]
 
+uid = str(max_speed) + "-" + str(radius_of_tx) + "-" + str(radius_of_replication) + "-" + str(radius_of_persistence) + "-"+ str(uid) 
+os.mkdir(uid)
+print(uid)
 
 avb_per_sim = []
 iHadMessage_portion_list = []
+list_of_lists_avg_10 = []
 for s in range(0,num_sim):
     
     print("SIMULATION--> ", s)
      # progress bar
-    bar = progressbar.ProgressBar(maxval=num_slots, \
-        widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-    bar.start()
+    # bar = progressbar.ProgressBar(maxval=num_slots, \
+    #     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+    # bar.start()
     orig_stdout = sys.stdout
     # f = open(os.devnull, 'w')
-    f = open('out-'+str(s)+'.txt', 'w')
+    f = open(str(uid)+'/out-'+str(s)+'.txt', 'w')
     sys.stdout = f      
 
     usrList = []        # list of users
@@ -124,8 +132,8 @@ for s in range(0,num_sim):
         failures_counter = 0
         attempts_counter = 0
         
-        bar.update(c+1)
-        sleep(0.1)
+        # bar.update(c+1)
+        # sleep(0.1)
         slots.append(c)
         num_slots_counter = num_slots_counter + 1
         c = c + 1
@@ -217,7 +225,7 @@ for s in range(0,num_sim):
         a_list.append(a)
         print(a)
 
-        if num_slots_counter == window_size/delta:
+        if num_slots_counter == 10:
             # Once we reach the desired number of slots per window, we compute the average of the availabilities for that window
             avg = sum(a_list)/len(a_list)
             a_avg_list.append(avg)
@@ -268,7 +276,7 @@ for s in range(0,num_sim):
         else:
             iHadMessage_portion_list.append(iHadMessage_list[h]/(iHadMessage_not_list[h]+iHadMessage_list[h]))
 
-    np.savetxt('dump-30-100-200-250-'+str(s)+'.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per, out_users, out,failures, attempts)), 
+    np.savetxt(str(uid)+'/dump-'+str(s)+'.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per, out_users, out,failures, attempts)), 
     fmt="%i %i %i %i %i %i %i %i %i %i %i")
 
 
@@ -277,25 +285,28 @@ for s in range(0,num_sim):
 
     flat_list = [item for sublist in connection_duration_list for item in sublist]
 
-    np.savetxt('connection-duration-list-'+str(s)+'.txt', flat_list , fmt="%i")
-    np.savetxt('iHadMessage_portion_list-'+str(s)+'.txt', iHadMessage_portion_list , fmt="%i")
+    np.savetxt(str(uid)+'/connection-duration-list-'+str(s)+'.txt', flat_list , fmt="%i")
+    np.savetxt(str(uid)+'/iHadMessage_portion_list-'+str(s)+'.txt', iHadMessage_portion_list , fmt="%i")
 
     # Add the average of the availability averages in this simulation to the final list of availabilities (one point per simulation)
     avb_per_sim.append(np.average(a_avg_list))
+    list_of_lists_avg_10.append(a_avg_list)
 
     ###################### SELECT A FUNCTION TO DUMP DATA ###########################
     dump = Dump(scenario)
-    dump.userLastPosition()
+    dump.userLastPosition(uid)
     # dump.infoPerZone()
 
     ########################## End of printing ######################################
     sys.stdout = orig_stdout
     f.close()
 
-    bar.finish()
+    # bar.finish()
     t1 = time.time()
     print("Lenght of connection duration list: %d" % len(flat_list))
     print ("Total time running: %s minutes" % str((t1-t0)/60))
 
 print(avb_per_sim)
-np.savetxt('availability_points.txt', avb_per_sim , fmt="%1.3f")
+print(list_of_lists_avg_10)
+np.savetxt(str(uid)+'/availability_points.txt', avb_per_sim , fmt="%1.3f")
+np.savetxt(str(uid)+'/list_of_averages.txt', list_of_lists_avg_10 , fmt="%1.3f")
