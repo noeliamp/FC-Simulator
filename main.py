@@ -221,7 +221,7 @@ for s in range(0,num_sim):
         attempts.append(attempts_counter)
 
         # we add the current slot availability to the list a_list
-        a = (zoi_counter + rep_counter + per_counter)/(zoi_users_counter+rep_users_counter+per_users_counter)
+        a = (zoi_counter + rep_counter)/(zoi_users_counter+rep_users_counter)
         a_list.append(a)
         print(a)
 

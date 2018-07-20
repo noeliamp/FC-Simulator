@@ -51,10 +51,10 @@ class User:
         self.hand_shake = self.scenario.hand_shake/self.scenario.delta
         self.hand_shake_counter = 0
         self.prob = 0
-        if self.scenario.flight_length_distribution == "uniform":
-            self.flight_length = np.random.uniform(self.scenario.min_flight_length, self.scenario.max_flight_length)
-        else:
-            self.flight_length = np.inf
+        if self.scenario.flight_length_distribution == "integer":
+            self.flight_length = np.random.randint(self.scenario.min_flight_length, self.scenario.max_flight_length)
+        # else:
+        #     self.flight_length = np.inf
         self.vx = 0
         self.vy = 0
         self.x_origin = 0
@@ -281,8 +281,9 @@ class User:
         else:       
             if self.m == 1:
                 # generate a flight lenght
-                # self.flight_length = np.random.randint(1,10)
-                # print("Flight lenght: ", self.flight_length)
+                print("My ID: ", self.id)
+                self.flight_length = np.random.randint(self.scenario.min_flight_length,self.scenario.max_flight_length)
+                print("Flight lenght: ", self.flight_length)
                 # select an angle
                 randNum = np.random.uniform()
                 alpha = 360 * randNum *(math.pi/180)
