@@ -48,6 +48,9 @@ flight_length_distribution = data["flight_length_distribution"]
 hand_shake = data["hand_shake"]
 window_size = data["window_size"]
 
+# different content size during simulations
+content_size_list = [100,9310441.379,18620782.76,27931124.14,37241465.52,46551806.9,55862148.28,65172489.66,74482831.03,83793172.41,93103513.79,102413855.2,111724196.6,121034537.9,130344879.3,139655220.7,148965562.1,158275903.4,167586244.8,176896586.2,186206927.6,195517269,204827610.3,214137951.7,223448293.1,232758634.5,242068975.9,251379317.2,260689658.6,270000000]
+
 uid = str(max_speed) + "-" + str(radius_of_tx) + "-" + str(radius_of_replication) + "-" + str(radius_of_persistence) + "-"+ str(uid) 
 os.mkdir(uid)
 print(uid)
@@ -58,7 +61,7 @@ list_of_lists_avg_10 = []
 for s in range(0,num_sim):
     
     print("SIMULATION--> ", s)
-     # progress bar
+    # progress bar
     # bar = progressbar.ProgressBar(maxval=num_slots, \
     #     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
     # bar.start()
@@ -75,6 +78,8 @@ for s in range(0,num_sim):
         print("Number of users:", num_users)
     else:
         num_users=density
+        print("Number of users:", num_users)
+
 
     # This creates the scenario defined in the input script
     scenario = Scenario(radius_of_interest, radius_of_replication, radius_of_persistence, max_area, user_generation_distribution, speed_distribution,pause_distribution,
@@ -82,7 +87,8 @@ for s in range(0,num_sim):
                         flight_length_distribution,hand_shake)
 
     # Create only one content per simulation
-    msg1 = Message(uuid.uuid4(),max_message_size)
+    # msg1 = Message(uuid.uuid4(),max_message_size)
+    msg1 = Message(uuid.uuid4(),content_size_list[s])
 
     for i in range(1,num_users+1):
         # waypoints are independently and identically distributed (i.i.d.) using a uniform random
@@ -116,7 +122,7 @@ for s in range(0,num_sim):
     iHadMessage_not_list = []
     iHadMessage_counter = 0
     iHadMessage_not_counter = 0
-    a = 0
+    a = 1
     a_list = []
     a_avg_list = []
     a_avg_list_squared = []
@@ -124,9 +130,11 @@ for s in range(0,num_sim):
     aux = 0
     th=0.4
     c = 0
+    
 
     # for i in range(0,num_slots):
-    while c < num_slots and aux < th:
+    while c < num_slots and a > 0:
+    # aux < th:
         CI = 0
         a_list = []
         failures_counter = 0
@@ -142,7 +150,7 @@ for s in range(0,num_sim):
         # print ('\n Lets run mobility slot: %d' % i)
         # Nobody is BUSY at the beggining of a slot
         for l in range(0,num_users):
-            scenario.usrList[l].buys = False
+            scenario.usrList[l].busy = False
         # Move every pedestrian once
         for j in range(0,num_users):
             scenario.usrList[j].randomDirection()
@@ -221,7 +229,10 @@ for s in range(0,num_sim):
         attempts.append(attempts_counter)
 
         # we add the current slot availability to the list a_list
-        a = (zoi_counter + rep_counter)/(zoi_users_counter+rep_users_counter)
+        if (zoi_users_counter+rep_users_counter) == 0:
+            a = 0
+        else:
+            a = (zoi_counter + rep_counter)/(zoi_users_counter+rep_users_counter)
         a_list.append(a)
         print(a)
 

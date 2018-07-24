@@ -34,13 +34,13 @@ class User:
         self.ys = 0
         self.yd = 0
         if self.scenario.speed_distribution == "uniform":
-            self.speed = np.random.uniform(0,1)
+            self.speed = (np.random.uniform(self.scenario.max_speed,self.scenario.min_speed))*self.scenario.delta
         if self.scenario.pause_distribution == "uniform":
             self.pause_slots = np.random.uniform(self.scenario.min_pause,self.scenario.max_pause)
         self.pause_slots = 0
         self.pause_counter = 1
         self.isPaused = False
-        self.N12 = 100            # slots to reach target position (x2,y2) 
+        self.N12 = np.inf            # slots to reach target position (x2,y2) 
         self.n = 1                # current slot within N12 for random waypoint
         self.m = 1                # current slot for random Direction
         self.rebound_counter = 0
@@ -53,8 +53,8 @@ class User:
         self.prob = 0
         if self.scenario.flight_length_distribution == "integer":
             self.flight_length = np.random.randint(self.scenario.min_flight_length, self.scenario.max_flight_length)
-        # else:
-        #     self.flight_length = np.inf
+        else:
+            self.flight_length = np.inf
         self.vx = 0
         self.vy = 0
         self.x_origin = 0
@@ -272,7 +272,7 @@ class User:
         # print("m--->", self.m)
 
         if self.isPaused:
-            # print("I'm in pause: ", self.pause_counter, self.pause_slots)
+            print("I'm in pause: ", self.pause_counter, self.pause_slots)
             self.pause_counter = self.pause_counter + 1 
             if self.pause_counter == self.pause_slots + 1:
                 self.isPaused = False
@@ -281,9 +281,9 @@ class User:
         else:       
             if self.m == 1:
                 # generate a flight lenght
-                print("My ID: ", self.id)
-                self.flight_length = np.random.randint(self.scenario.min_flight_length,self.scenario.max_flight_length)
-                print("Flight lenght: ", self.flight_length)
+                # print("My ID: ", self.id)
+                # self.flight_length = np.random.randint(self.scenario.min_flight_length,self.scenario.max_flight_length)
+                # print("Flight lenght: ", self.flight_length)
                 # select an angle
                 randNum = np.random.uniform()
                 alpha = 360 * randNum *(math.pi/180)
@@ -451,7 +451,9 @@ class User:
                                     self.counter_list.append(m.size)
                                 else:
                                     self.counter_list.append(self.counter_list[-1]+m.size)
-                                    
+
+                        # After choosing the messages that are missing in the peer, we need to shuffle the list
+                        shuffle(self.exchange_list)
                         # print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
                         # print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
                         for m in neighbour.messages_list:
@@ -464,6 +466,8 @@ class User:
                                 else:
                                     neighbour.counter_list.append(neighbour.counter_list[-1]+m.size)
 
+                        # After choosing the messages that are missing in the peer, we need to shuffle the list
+                        shuffle(neighbour.exchange_list)
 
                         # Second, exchange the data with peer!!
                         # print("My exchange db size --> ", self.exchange_size, "Counter list", len(self.counter_list))
