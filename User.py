@@ -3,6 +3,7 @@ from Scenario import Scenario
 from Message import Message
 import math  
 from random import shuffle
+# from numba import jit
 
 
 class User:
@@ -265,7 +266,7 @@ class User:
         self.xb.append(self.x2)
         self.yb.append(self.y2)
 
-
+    # @jit
     def randomDirection(self):
         # print("My id is: ", self.id)
         # If it is the beggining we need to choose the parameters (direction,etc)
@@ -346,7 +347,7 @@ class User:
 
         # Check the new point zone of the user
         self.calculateZone()
-
+    # @jit
     def userContact(self):
         # print ("My id is ", self.id, " And my zone is: ", self.zone, " Am I busy for this slot: ", self.busy)
 
@@ -478,6 +479,7 @@ class User:
                     
     # method to check which DB is smaller and start exchanging it. 
     # At this point We have the messages to be exchange (exchange_list) and the total list sizes (exchange_size).
+    # @jit
     def exchangeData(self,neighbour):
         self.busy = True
         neighbour.busy = True

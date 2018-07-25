@@ -16,6 +16,8 @@ import uuid
 import os
 import base64
 import hashlib
+#from numpy.random import RandomState
+# from numba import jit
 
 t0 = time.time()
 uid = base64.urlsafe_b64encode(hashlib.md5(os.urandom(128)).digest())[:8]
@@ -50,7 +52,7 @@ window_size = data["window_size"]
 
 # different content size during simulations
 content_size_list = [100,9310441.379,18620782.76,27931124.14,37241465.52,46551806.9,55862148.28,65172489.66,74482831.03,83793172.41,93103513.79,102413855.2,111724196.6,121034537.9,130344879.3,139655220.7,148965562.1,158275903.4,167586244.8,176896586.2,186206927.6,195517269,204827610.3,214137951.7,223448293.1,232758634.5,242068975.9,251379317.2,260689658.6,270000000]
-
+seed_list = [15482669,15482681,15482683,15482711,15482729,15482941,15482947,15482977,15482993,15483023,15483029,15483067,15483077,15483079,15483089,15483101,15483103,15482743,15482771,15482773,15482783,15482807,15482809,15482827,15482851,15482861,15482893,15482911,15482917,15482923]
 uid = str(max_speed) + "-" + str(radius_of_tx) + "-" + str(radius_of_replication) + "-" + str(radius_of_persistence) + "-"+ str(uid) 
 os.mkdir(uid)
 print(uid)
@@ -59,7 +61,8 @@ avb_per_sim = []
 iHadMessage_portion_list = []
 list_of_lists_avg_10 = []
 for s in range(0,num_sim):
-    
+    #rnd = RandomState(seed_list[s])
+    np.random.seed(seed_list[s])
     print("SIMULATION--> ", s)
     # progress bar
     # bar = progressbar.ProgressBar(maxval=num_slots, \
@@ -80,7 +83,7 @@ for s in range(0,num_sim):
         num_users=density
         print("Number of users:", num_users)
 
-
+    print("Content size: ", content_size_list[s])
     # This creates the scenario defined in the input script
     scenario = Scenario(radius_of_interest, radius_of_replication, radius_of_persistence, max_area, user_generation_distribution, speed_distribution,pause_distribution,
                         min_pause,max_pause, min_speed,max_speed,delta,radius_of_tx,usrList,channel_rate,num_users,min_flight_length,max_flight_length,
@@ -135,6 +138,15 @@ for s in range(0,num_sim):
     # for i in range(0,num_slots):
     while c < num_slots and a > 0:
     # aux < th:
+        zoi_counter= 0
+        per_counter = 0
+        rep_counter= 0
+        out_counter = 0
+        zoi_users_counter = 0
+        per_users_counter = 0
+        rep_users_counter = 0
+        out_users_counter = 0
+        iHadMessage_counter = 0
         CI = 0
         a_list = []
         failures_counter = 0
@@ -149,18 +161,33 @@ for s in range(0,num_sim):
         # Run mobility for every slot
         # print ('\n Lets run mobility slot: %d' % i)
         # Nobody is BUSY at the beggining of a slot
-        for l in range(0,num_users):
-            scenario.usrList[l].busy = False
         # Move every pedestrian once
         for j in range(0,num_users):
+            scenario.usrList[j].busy = False
             scenario.usrList[j].randomDirection()
-
+            # After moving, compute to which zone it belongs to increase the right counter
+            if scenario.usrList[j].zone == "interest":
+                zoi_users_counter += 1
+                if len(scenario.usrList[j].messages_list) == 1:
+                    zoi_counter += 1
+            
+            if scenario.usrList[j].zone == "replication":
+                rep_users_counter += 1
+                if len(scenario.usrList[j].messages_list) == 1:
+                    rep_counter += 1
+            
+            if scenario.usrList[j].zone == "persistence":
+                per_users_counter += 1
+                if len(scenario.usrList[j].messages_list) == 1:
+                    per_counter += 1
+            
+            if scenario.usrList[j].zone == "outer":
+                out_users_counter += 1
+                if len(scenario.usrList[j].messages_list) == 1:
+                    out_counter += 1
 
         # Run contacts for every slot after mobility, at the beggining of every slot every user is available --> busy = Flase
         # print ('\n Lets run contacts slot: %d' % i)
-        for k in range(0,num_users):
-            scenario.usrList[k].busy = False
-
         # suffle users lists
         shuffle(scenario.usrList)
         for k in range(0,num_users):
@@ -170,52 +197,38 @@ for s in range(0,num_sim):
             # run users contact
             scenario.usrList[k].userContact()
 
-            failures_counter = failures_counter + scenario.usrList[k].failures_counter
-            attempts_counter = attempts_counter +  scenario.usrList[k].attempts_counter
+            failures_counter += scenario.usrList[k].failures_counter
+            attempts_counter += scenario.usrList[k].attempts_counter
 
         ################################## Dump data per slot in a file ############################################
-        
-        zoi_counter= 0
-        per_counter = 0
-        rep_counter= 0
-        out_counter = 0
-        zoi_users_counter = 0
-        per_users_counter = 0
-        rep_users_counter = 0
-        out_users_counter = 0
-        iHadMessage_counter = 0
 
-        for k in range(0,num_users):
-            if scenario.usrList[k].zone == "interest":
-                zoi_users_counter = zoi_users_counter + 1
-                if len(scenario.usrList[k].messages_list) == 1:
-                    zoi_counter = zoi_counter + 1
+        # for k in range(0,num_users):
+            # if scenario.usrList[k].zone == "interest":
+            #     zoi_users_counter = zoi_users_counter + 1
+            #     if len(scenario.usrList[k].messages_list) == 1:
+            #         zoi_counter = zoi_counter + 1
             
-        for k in range(0,num_users):
-            if scenario.usrList[k].zone == "replication":
-                rep_users_counter = rep_users_counter + 1
-                if len(scenario.usrList[k].messages_list) == 1:
-                    rep_counter = rep_counter + 1
+            # if scenario.usrList[k].zone == "replication":
+            #     rep_users_counter = rep_users_counter + 1
+            #     if len(scenario.usrList[k].messages_list) == 1:
+            #         rep_counter = rep_counter + 1
             
-        for k in range(0,num_users):
-            if scenario.usrList[k].zone == "persistence":
-                per_users_counter = per_users_counter + 1
-                if len(scenario.usrList[k].messages_list) == 1:
-                    per_counter = per_counter + 1
+            # if scenario.usrList[k].zone == "persistence":
+            #     per_users_counter = per_users_counter + 1
+            #     if len(scenario.usrList[k].messages_list) == 1:
+            #         per_counter = per_counter + 1
             
-        for k in range(0,num_users):
-            if scenario.usrList[k].zone == "outer":
-                out_users_counter = out_users_counter + 1
-                if len(scenario.usrList[k].messages_list) == 1:
-                    out_counter = out_counter + 1
+            # if scenario.usrList[k].zone == "outer":
+            #     out_users_counter = out_users_counter + 1
+            #     if len(scenario.usrList[k].messages_list) == 1:
+            #         out_counter = out_counter + 1
 
-        for k in range(0,num_users):
-            if scenario.usrList[k].iHadMessage == 1:
-                iHadMessage_not_counter = iHadMessage_not_counter + 1
-                scenario.usrList[k].iHadMessage = 0
-            if scenario.usrList[k].iHadMessage == 2:
-                iHadMessage_counter = iHadMessage_counter + 1
-                scenario.usrList[k].iHadMessage = 0
+            # if scenario.usrList[k].iHadMessage == 1:
+            #     iHadMessage_not_counter = iHadMessage_not_counter + 1
+            #     scenario.usrList[k].iHadMessage = 0
+            # if scenario.usrList[k].iHadMessage == 2:
+            #     iHadMessage_counter = iHadMessage_counter + 1
+            #     scenario.usrList[k].iHadMessage = 0
         
         zoi.append(zoi_counter)
         rep.append(rep_counter)
@@ -234,38 +247,39 @@ for s in range(0,num_sim):
         else:
             a = (zoi_counter + rep_counter)/(zoi_users_counter+rep_users_counter)
         a_list.append(a)
-        print(a)
+        # print(a)
 
         if num_slots_counter == 10:
             # Once we reach the desired number of slots per window, we compute the average of the availabilities for that window
-            avg = sum(a_list)/len(a_list)
+            # print("aquiiiiiiii---> ", np.average(a_list), a_list, len(a_list))
+            avg = np.average(a_list)
             a_avg_list.append(avg)
             a_avg_list_squared.append(np.power(avg,2))
             # compute the standard deviation up to that window
-            num = sum(a_avg_list_squared)-(np.power(sum(a_avg_list),2))/len(a_avg_list)
-            den = len(a_avg_list)-1   
-            if den != 0:
-                sd = np.sqrt(num/den)
-            else: 
-                sd = 0
+            # num = sum(a_avg_list_squared)-(np.power(sum(a_avg_list),2))/len(a_avg_list)
+            # den = len(a_avg_list)-1   
+            # if den != 0:
+            #     sd = np.sqrt(num/den)
+            # else: 
+            #     sd = 0
 
-            # compute the confidence interval up to this window
-            min = a - ((1.96 * sd)/np.sqrt(len(a_avg_list)))
-            max = a + ((1.96 * sd)/np.sqrt(len(a_avg_list)))
-            CI = max - min
-            mi = sum(a_avg_list)/len(a_avg_list)
-            # variable to check if next point is smaller than a threshold (comparison in the while loop)
-            aux = CI/mi
+            # # compute the confidence interval up to this window
+            # min = a - ((1.96 * sd)/np.sqrt(len(a_avg_list)))
+            # max = a + ((1.96 * sd)/np.sqrt(len(a_avg_list)))
+            # CI = max - min
+            # mi = sum(a_avg_list)/len(a_avg_list)
+            # # variable to check if next point is smaller than a threshold (comparison in the while loop)
+            # aux = CI/mi
 
             ##### lists of nodes entering the ZOI with and without content
-            iHadMessage_list.append(iHadMessage_counter)
-            iHadMessage_not_list.append(iHadMessage_not_counter)
+            # iHadMessage_list.append(iHadMessage_counter)
+            # iHadMessage_not_list.append(iHadMessage_not_counter)
 
-            print("avrg: ", avg, " sd: ", sd, " aux: ", aux)
+            # print("avrg: ", avg, " sd: ", sd, " aux: ", aux)
             num_slots_counter = 0
             a_list = []
-            iHadMessage_counter = 0
-            iHadMessage_not_counter = 0
+            # iHadMessage_counter = 0
+            # iHadMessage_not_counter = 0
 
     for k in range(0,num_users):
         if scenario.usrList[k].ongoing_conn == True:
@@ -277,35 +291,35 @@ for s in range(0,num_sim):
         avg_used_mbs_per_node = 0
     else:
         avg_used_mbs_per_node = sum(scenario.used_mbs_per_slot)/len(scenario.used_mbs_per_slot)
-    print(scenario.used_mbs_per_slot)
-    print(len(scenario.used_mbs_per_slot),num_slots)
-    print(avg_used_mbs_per_node)
-    print(msg1.size)
-    for h in range(0,len(iHadMessage_not_list)):
-        if iHadMessage_not_list[h] + iHadMessage_list[h] == 0:
-            iHadMessage_portion_list.append(0)
-        else:
-            iHadMessage_portion_list.append(iHadMessage_list[h]/(iHadMessage_not_list[h]+iHadMessage_list[h]))
+    # print(scenario.used_mbs_per_slot)
+    # print(len(scenario.used_mbs_per_slot),num_slots)
+    # print(avg_used_mbs_per_node)
+    # print(msg1.size)
+    # for h in range(0,len(iHadMessage_not_list)):
+    #     if iHadMessage_not_list[h] + iHadMessage_list[h] == 0:
+    #         iHadMessage_portion_list.append(0)
+    #     else:
+    #         iHadMessage_portion_list.append(iHadMessage_list[h]/(iHadMessage_not_list[h]+iHadMessage_list[h]))
 
     np.savetxt(str(uid)+'/dump-'+str(s)+'.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per, out_users, out,failures, attempts)), 
     fmt="%i %i %i %i %i %i %i %i %i %i %i")
 
 
-    for k in range(0,num_users):
-        connection_duration_list.append(scenario.usrList[k].connection_duration_list)
+    # for k in range(0,num_users):
+    #     connection_duration_list.append(scenario.usrList[k].connection_duration_list)
 
-    flat_list = [item for sublist in connection_duration_list for item in sublist]
+    # flat_list = [item for sublist in connection_duration_list for item in sublist]
 
-    np.savetxt(str(uid)+'/connection-duration-list-'+str(s)+'.txt', flat_list , fmt="%i")
-    np.savetxt(str(uid)+'/iHadMessage_portion_list-'+str(s)+'.txt', iHadMessage_portion_list , fmt="%i")
+    # np.savetxt(str(uid)+'/connection-duration-list-'+str(s)+'.txt', flat_list , fmt="%i")
+    # np.savetxt(str(uid)+'/iHadMessage_portion_list-'+str(s)+'.txt', iHadMessage_portion_list , fmt="%i")
 
     # Add the average of the availability averages in this simulation to the final list of availabilities (one point per simulation)
     avb_per_sim.append(np.average(a_avg_list))
     list_of_lists_avg_10.append(a_avg_list)
 
     ###################### SELECT A FUNCTION TO DUMP DATA ###########################
-    dump = Dump(scenario)
-    dump.userLastPosition(uid)
+    # dump = Dump(scenario)
+    # dump.userLastPosition(uid)
     # dump.infoPerZone()
 
     ########################## End of printing ######################################
@@ -314,10 +328,15 @@ for s in range(0,num_sim):
 
     # bar.finish()
     t1 = time.time()
-    print("Lenght of connection duration list: %d" % len(flat_list))
+    # print("Lenght of connection duration list: %d" % len(flat_list))
     print ("Total time running: %s minutes" % str((t1-t0)/60))
 
-print(avb_per_sim)
-print(list_of_lists_avg_10)
+# print("list of averages: ", list_of_lists_avg_10)
 np.savetxt(str(uid)+'/availability_points.txt', avb_per_sim , fmt="%1.3f")
-np.savetxt(str(uid)+'/list_of_averages.txt', list_of_lists_avg_10 , fmt="%1.3f")
+
+outfile = open(str(uid)+'/list_of_averages.txt', 'w')
+for result in list_of_lists_avg_10:
+  outfile.writelines(str(result))
+  outfile.write('\n')
+outfile.close()
+
