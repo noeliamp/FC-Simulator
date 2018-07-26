@@ -2,8 +2,7 @@ import numpy as np
 from Scenario import Scenario
 from Message import Message
 import math  
-from random import shuffle
-# from numba import jit
+from numba import jit
 
 
 class User:
@@ -266,7 +265,7 @@ class User:
         self.xb.append(self.x2)
         self.yb.append(self.y2)
 
-    # @jit
+    @jit
     def randomDirection(self):
         # print("My id is: ", self.id)
         # If it is the beggining we need to choose the parameters (direction,etc)
@@ -347,7 +346,7 @@ class User:
 
         # Check the new point zone of the user
         self.calculateZone()
-    # @jit
+    @jit
     def userContact(self):
         # print ("My id is ", self.id, " And my zone is: ", self.zone, " Am I busy for this slot: ", self.busy)
 
@@ -355,7 +354,7 @@ class User:
         if self.busy is False and (self.zone == "interest" or self.zone == "replication"):
             self.neighbours_list = []
             # Find neighbours in this user's tx range that are not already busy in this slot
-            for user in self.scenario.usrList:
+            for user in self.scenario.usr_list:
                 if user.id != self.id:
                     pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
                     if pos_user < np.power(self.scenario.radius_of_tx,2):
@@ -365,7 +364,7 @@ class User:
                             # print("This is my neighbour: ", user.id, user.zone, user.busy)
 
             # Suffle neighbours list to void connecting always to the same users
-            shuffle(self.neighbours_list)
+            np.random.shuffle(self.neighbours_list)
             # Once we have the list of neighbours, first check if there is a previous connection ongoing and the peer is still around
             if self.ongoing_conn == True and self.prev_peer in self.neighbours_list and self.prev_peer.zone != "outer" and self.prev_peer.zone != "persistence":
                 # print("I have a prev peer and it is still close. ", self.prev_peer.id)
@@ -454,7 +453,7 @@ class User:
                                     self.counter_list.append(self.counter_list[-1]+m.size)
 
                         # After choosing the messages that are missing in the peer, we need to shuffle the list
-                        shuffle(self.exchange_list)
+                        np.random.shuffle(self.exchange_list)
                         # print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
                         # print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
                         for m in neighbour.messages_list:
@@ -468,7 +467,7 @@ class User:
                                     neighbour.counter_list.append(neighbour.counter_list[-1]+m.size)
 
                         # After choosing the messages that are missing in the peer, we need to shuffle the list
-                        shuffle(neighbour.exchange_list)
+                        np.random.shuffle(neighbour.exchange_list)
 
                         # Second, exchange the data with peer!!
                         # print("My exchange db size --> ", self.exchange_size, "Counter list", len(self.counter_list))
@@ -479,7 +478,7 @@ class User:
                     
     # method to check which DB is smaller and start exchanging it. 
     # At this point We have the messages to be exchange (exchange_list) and the total list sizes (exchange_size).
-    # @jit
+    @jit
     def exchangeData(self,neighbour):
         self.busy = True
         neighbour.busy = True

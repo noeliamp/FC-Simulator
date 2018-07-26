@@ -14,8 +14,8 @@ class Dump:
         x = []
         y = []
         for i in range(0,self.scenario.num_users):
-            x.append(self.scenario.usrList[i].x_list[-1])
-            y.append(self.scenario.usrList[i].y_list[-1])
+            x.append(self.scenario.usr_list[i].x_list[-1])
+            y.append(self.scenario.usr_list[i].y_list[-1])
 
         # print(x)
         # print(y)
@@ -38,7 +38,7 @@ class Dump:
         persistence["persistence"]= OrderedDict()
         outer["outer"] = OrderedDict()      
 
-        for i in self.scenario.usrList:
+        for i in self.scenario.usr_list:
             if i.zone == "interest":
                 interest["interest"][i.id] = len(i.messages_list)
             if i.zone == "replication":
