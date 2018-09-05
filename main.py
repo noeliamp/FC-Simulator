@@ -46,8 +46,8 @@ max_flight_length = data["max_flight_length"]
 flight_length_distribution = data["flight_length_distribution"]
 hand_shake = data["hand_shake"]
 window_size = data["window_size"]
-num_scenarios = data["num_scenarios"]
-num_content = data["num_content"]
+num_zois = data["num_zois"]
+num_content_per_zoi = data["num_content_per_zoi"]
 
 # different content size during simulations
 content_size_list = [100,9310441.379,18620782.76,27931124.14,37241465.52,46551806.9,55862148.28,65172489.66,74482831.03,83793172.41,93103513.79,102413855.2,111724196.6,121034537.9,130344879.3,139655220.7,148965562.1,158275903.4,167586244.8,176896586.2,186206927.6,195517269,204827610.3,214137951.7,223448293.1,232758634.5,242068975.9,251379317.2,260689658.6,270000000]
@@ -61,14 +61,13 @@ list_of_lists_avg_10 = []
 zoi_counter= 0
 per_counter = 0
 rep_counter= 0
-out_counter = 0
 zoi_users_counter = 0
 per_users_counter = 0
 rep_users_counter = 0
 out_users_counter = 0
 
 for s in range(0,num_sim):
-    # np.random.seed(seed_list[s])
+    np.random.seed(seed_list[s])
     print("SIMULATION--> ", s)
     print("content size ", content_size_list[s])
     # progress bar
@@ -80,8 +79,7 @@ for s in range(0,num_sim):
     f = open(str(uid)+'/out-'+str(s)+'.txt', 'w')
     sys.stdout = f      
 
-    usr_list = []        # list of users
-    scenarios_list = []  # list of scenarios
+    usr_list = []        # list of users in the whole scenario
 
     # This creates N objects of User class
     if num_users_distribution == "poisson":
@@ -92,57 +90,49 @@ for s in range(0,num_sim):
         print("Number of users:", num_users)
 
 
-    # CREATION OF SCENARIOS
-    for ns in range(1,num_scenarios+1):
-        scenario = Scenario(s,radius_of_interest, radius_of_replication, radius_of_persistence, max_area, user_generation_distribution, speed_distribution,pause_distribution,
-                            min_pause,max_pause, min_speed,max_speed,delta,radius_of_tx,usr_list,channel_rate,num_users,min_flight_length,max_flight_length,
-                            flight_length_distribution,hand_shake)
-        # CREATION OF CONTENT
-        # msg1 = Message(uuid.uuid4(),max_message_size)
-        for c in range(1,num_content+1):
-            msg1 = Message(uuid.uuid4(),content_size_list[s])
+    # CREATION OF SCENARIO With num_zois number of zois
+    scenario = Scenario(radius_of_interest, radius_of_replication, radius_of_persistence, max_area, user_generation_distribution, 
+    speed_distribution,pause_distribution,min_pause,max_pause, min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length,
+    max_flight_length,flight_length_distribution,hand_shake,num_zois)
+    
+    # CREATION OF ONE CONTENT PER ZOI
+    for z in range(0,scenario.num_zois):
+        msg = Message(uuid.uuid4(),content_size_list[s],z)
+        scenario.zois_list[z].content_list.append(msg)
 
-        # CREATION OF USERS
-        for i in range(1,num_users+1):
-            
-            # waypoints are independently and identically distributed (i.i.d.) using a uniform random
-            # distribution over the system space.
-            # The values for the pause time are chosen from a bounded random distribution in the interval [0, tp,max] with tp,max < inf. 
-            # In general the speed is also chosen from a random distribution within the interval [vmin, vmax] with vmin > 0 and vmax < inf.   
-
-            # add the same message to all the users
-            user = User(i,np.random.uniform(-max_area, max_area),np.random.uniform(-max_area, max_area), scenario,max_memory,max_message_size)
-            if user.zone != "outer":
-                user.messages_list.append(msg1)
-                user.used_memory = msg1.size
-            # to compute the first availability
-            if user.zone == "interest":
+    # CREATION OF USERS
+    for i in range(0,num_users):
+        user = User(i,np.random.uniform(-max_area, max_area),np.random.uniform(-max_area, max_area), scenario,max_memory)
+        # add the content to each user according to the ZOIs that they belong to
+        for z in range(0,len(user.zones)):
+            if user.zones[z] != "outer":
+                user.messages_list[z] = scenario.zois_list[z].content_list
+            # to compute the first availability (if node is not out it will have the message for sure, just added before)
+            if user.zones[z] == "interest":
                 zoi_users_counter += 1
-                if len(user.messages_list) == 1:
-                    zoi_counter += 1
+                zoi_counter += 1
             
-            if user.zone == "replication":
+            if user.zones[z] == "replication":
                 rep_users_counter += 1
-                if len(user.messages_list) == 1:
-                    rep_counter += 1
+                rep_counter += 1
             
-            if user.zone == "persistence":
+            if user.zones[z] == "persistence":
                 per_users_counter += 1
-                if len(user.messages_list) == 1:
-                    per_counter += 1
+                per_counter += 1
             
-            if user.zone == "out":
-                out_users_counter += 1
-                if len(user.messages_list) == 1:
-                    out_counter += 1
-                        
-        
-            usr_list.append(user)
+            if user.zone == "outer":
+                out_users_counter += 1   
 
-      
-        # add the list of users to every scenario
-        scenario.usr_list = usr_list
-        scenarios_list.append(scenario)
+        # After creating a user, adding the messages according to the zones it belongs to and setting availability counters, 
+        # now we set the amount of memory used by the node according to the messages that were included in its list.
+        for m in user.messages_list:
+            user.used_memory += m.size                     
+    
+        usr_list.append(user)
+
+
+    # add the list of users to every scenario
+    scenario.usr_list = usr_list
 
 
 
@@ -164,7 +154,7 @@ for s in range(0,num_sim):
     else:
         a = (zoi_counter + rep_counter)/(zoi_users_counter+rep_users_counter)
     a_avg_list = []
-    a_avg_list_squared = []
+    # a_avg_list_squared = []
     num_slots_counter = 0
     aux = 0
     th=0.4
@@ -182,7 +172,6 @@ for s in range(0,num_sim):
         rep_users_counter = 0
         out_users_counter = 0
         CI = 0
-        a_list = []
         failures_counter = 0
         attempts_counter = 0
         
@@ -233,6 +222,8 @@ for s in range(0,num_sim):
 
             failures_counter += scenario.usr_list[k].failures_counter
             attempts_counter += scenario.usr_list[k].attempts_counter
+            print("failures: ", failures_counter)
+            print("attempts: ", attempts_counter)
 
         ################################## Dump data per slot in a file ############################################
         
@@ -254,11 +245,14 @@ for s in range(0,num_sim):
             a = (zoi_counter + rep_counter)/(zoi_users_counter+rep_users_counter)
         a_list.append(a)
 
+        print("availability: " , a)
+
         if num_slots_counter == 10:
             # Once we reach the desired number of slots per window, we compute the average of the availabilities for that window
             avg = np.average(a_list)
+            print("a_list: ", a_list)
             a_avg_list.append(avg)
-
+            print("avg: ", avg)
             # compute the standard deviation up to that window
 
             # a_avg_list_squared.append(np.power(avg,2))
@@ -279,7 +273,7 @@ for s in range(0,num_sim):
 
             num_slots_counter = 0
             a_list = []
-           
+        
     for k in range(0,num_users):
         if scenario.usr_list[k].ongoing_conn == True:
             scenario.usr_list[k].connection_duration_list.append(scenario.usr_list[k].connection_duration)
@@ -301,8 +295,8 @@ for s in range(0,num_sim):
     list_of_lists_avg_10.append(a_avg_list)
 
     ###################### SELECT A FUNCTION TO DUMP DATA ###########################
-    dump = Dump(scenario)
-    dump.userLastPosition(uid)
+    # dump = Dump(scenario)
+    # dump.userLastPosition(uid)
     # dump.infoPerZone()
 
     ########################## End of printing ######################################
@@ -317,10 +311,9 @@ for s in range(0,num_sim):
 # print("list of averages: ", list_of_lists_avg_10)
 print("availability: ", avb_per_sim)
 np.savetxt(str(uid)+'/availability_points.txt', avb_per_sim , fmt="%1.3f")
-
+print("content_size: ", content_size_list[s],s)
 outfile = open(str(uid)+'/list_of_averages.txt', 'w')
 for result in list_of_lists_avg_10:
-  outfile.writelines(str(result))
-  outfile.write('\n')
+    outfile.writelines(str(result))
+    outfile.write('\n')
 outfile.close()
-
