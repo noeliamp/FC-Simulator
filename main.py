@@ -104,24 +104,24 @@ for s in range(0,num_sim):
     for i in range(0,num_users):
         user = User(i,np.random.uniform(-max_area, max_area),np.random.uniform(-max_area, max_area), scenario,max_memory)
         # add the content to each user according to the ZOIs that they belong to
-        for z in range(0,len(user.zones)):
-            if user.zones[z] != "outer":
-                user.messages_list[z] = scenario.zois_list[z].content_list
-            # to compute the first availability (if node is not out it will have the message for sure, just added before)
+        for z in user.zones.keys():
+            # to compute the first availability (if node is not out it will have the message for sure)
             if user.zones[z] == "interest":
+                user.messages_list.extend(z.content_list)
                 zoi_users_counter += 1
                 zoi_counter += 1
             
             if user.zones[z] == "replication":
+                user.messages_list.extend(z.content_list)
                 rep_users_counter += 1
                 rep_counter += 1
             
             if user.zones[z] == "persistence":
+                user.messages_list.extend(z.content_list)
                 per_users_counter += 1
                 per_counter += 1
             
-            if user.zone == "outer":
-                out_users_counter += 1   
+            # we are not counting nodes that are out of every zoi  
 
         # After creating a user, adding the messages according to the zones it belongs to and setting availability counters, 
         # now we set the amount of memory used by the node according to the messages that were included in its list.
@@ -140,7 +140,6 @@ for s in range(0,num_sim):
     zoi = []
     rep = []
     per = []
-    out = [] 
     zoi_users = []
     rep_users = []
     per_users = []
@@ -166,7 +165,6 @@ for s in range(0,num_sim):
         zoi_counter= 0
         per_counter = 0
         rep_counter= 0
-        out_counter = 0
         zoi_users_counter = 0
         per_users_counter = 0
         rep_users_counter = 0
@@ -188,26 +186,26 @@ for s in range(0,num_sim):
         for j in range(0,num_users):
             scenario.usr_list[j].busy = False
             scenario.usr_list[j].randomDirection()
-            # After moving, compute to which zone it belongs to increase the right counter
-            if scenario.usr_list[j].zone == "interest":
-                zoi_users_counter += 1
-                if len(scenario.usr_list[j].messages_list) == 1:
-                    zoi_counter += 1
-            
-            if scenario.usr_list[j].zone == "replication":
-                rep_users_counter += 1
-                if len(scenario.usr_list[j].messages_list) == 1:
-                    rep_counter += 1
-            
-            if scenario.usr_list[j].zone == "persistence":
-                per_users_counter += 1
-                if len(scenario.usr_list[j].messages_list) == 1:
-                    per_counter += 1
-            
-            if scenario.usr_list[j].zone == "outer":
-                out_users_counter += 1
-                if len(scenario.usr_list[j].messages_list) == 1:
-                    out_counter += 1
+            # After moving the node, compute to which zone it belongs to increase the right counter
+            for z in scenario.usr_list[j].zones.keys():
+                if scenario.usr_list[j].zones[z] == "interest":
+                    zoi_users_counter += 1
+                    if any(x.zoi == z for x in scenario.usr_list[j].messages_list):
+                        zoi_counter += 1
+                
+                if scenario.usr_list[j].zones[z] == "replication":
+                    rep_users_counter += 1
+                    if any(x.zoi == z for x in scenario.usr_list[j].messages_list):
+                        rep_counter += 1
+                
+                if scenario.usr_list[j].zones[z] == "persistence":
+                    per_users_counter += 1
+                    if any(x.zoi == z for x in scenario.usr_list[j].messages_list):
+                        per_counter += 1
+                
+                # we are not counting the nodes that are out of every zoi
+
+
 
         # Run contacts for every slot after mobility, at the beggining of every slot every user is available --> busy = Flase
         # print ('\n Lets run contacts slot: %d' % i)
@@ -230,11 +228,10 @@ for s in range(0,num_sim):
         zoi.append(zoi_counter)
         rep.append(rep_counter)
         per.append(per_counter)
-        out.append(out_counter)
         zoi_users.append(zoi_users_counter)
         rep_users.append(rep_users_counter)
         per_users.append(per_users_counter)
-        out_users.append(out_users_counter)
+        # out_users.append(out_users_counter)
         failures.append(failures_counter)
         attempts.append(attempts_counter)
 
@@ -280,8 +277,8 @@ for s in range(0,num_sim):
             scenario.usr_list[k].ongoing_conn = False
             scenario.usr_list[k].prev_peer.ongoing_conn = False
 
-    np.savetxt(str(uid)+'/dump-'+str(s)+'.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per, out_users, out,failures, attempts)), 
-    fmt="%i %i %i %i %i %i %i %i %i %i %i")
+    np.savetxt(str(uid)+'/dump-'+str(s)+'.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts)), 
+    fmt="%i %i %i %i %i %i %i %i %i")
 
 
     for k in range(0,num_users):

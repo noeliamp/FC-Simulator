@@ -2,6 +2,7 @@ import numpy as np
 import math 
 from collections import Counter 
 from collections import OrderedDict
+import sys
 
 class User:
     'Common base class for all users'
@@ -85,7 +86,7 @@ class User:
                 self.zones[z] = "interest"
             if d > np.power(z.radius_of_persistence,2):
                 # We do not keep information about the zones where the node is out
-                if self.zones[z]:
+                if z in self.zones:
                     del self.zones[z]
                     self.deleteMessages(z)
 
@@ -186,9 +187,13 @@ class User:
 
     def userContact(self):
         # print ("My id is ", self.id, " And my zone is: ", self.zone, " Am I busy for this slot: ", self.busy)
+        my_rep_zones = []
+        my_inter_zones = []
+        if "replication" in self.zones.values():
+            my_rep_zones.append(list(self.zones.keys())[list(self.zones.values()).index("replication")])
+        if "interest" in self.zones.values():
+            my_inter_zones.append(list(self.zones.keys())[list(self.zones.values()).index("interest")])
 
-        my_rep_zones = list(self.zones.keys())[list(self.zones.values()).index("replication")]
-        my_inter_zones = list(self.zones.keys())[list(self.zones.values()).index("interest")]
         my_rep_zones.extend(my_inter_zones)
         # Check if the node is not BUSY already for this slot and if the it is in the areas where data exchange is allowed
         if self.busy is False and len(my_rep_zones)>0:
@@ -199,10 +204,16 @@ class User:
                     pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
                     if pos_user < np.power(self.scenario.radius_of_tx,2):
                         # Check if the neighbour is in the areas where data exchange is allowed
-                        user_rep_zones = list(user.zones.keys())[list(user.zones.values()).index("replication")]
-                        user_inter_zones = list(user.zones.keys())[list(user.zones.values()).index("interest")]
+                        user_rep_zones = []
+                        user_inter_zones = []
+                        if "replication" in user.zones.values():
+                            user_rep_zones.append(list(user.zones.keys())[list(user.zones.values()).index("replication")])
+                        if "interest" in user.zones.values():
+                            user_inter_zones.append(list(user.zones.keys())[list(user.zones.values()).index("interest")])
+
                         user_rep_zones.extend(user_inter_zones)
-                        if my_rep_zones.intersection(user_rep_zones) > 0:
+                        p = set(my_rep_zones)&set(user_rep_zones)
+                        if len(p) > 0:
                             self.neighbours_list.append(user)
                             # print("This is my neighbour: ", user.id, user.zone, user.busy)
 
@@ -290,7 +301,7 @@ class User:
                         # First, check the messages missing in the peers devices and add them to the exchange list of messages of every peer
                         for m in self.messages_list:
                             # print("Neighbour does not have message? ", m not in neighbour.messages_list, m.size, len(self.messages_list))
-                            if m not in neighbour.messages_list and m.zoi.id in neighbour.zones.keys():
+                            if m not in neighbour.messages_list and m.zoi in neighbour.zones.keys():
                                 self.exchange_list.append(m)
                                 self.exchange_size = self.exchange_size + m.size
                                 if len(self.counter_list) == 0:

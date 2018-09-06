@@ -1,9 +1,11 @@
 {
-"num_sim" : 30,
+"num_sim" : 1,
 "num_slots" :12000,
 "num_users":200,
 "num_users_distribution": "none",
+"num_zois_distribution": "none",
 "user_generation_distribution":"uniform",
+"zoi_generation_distribution":"uniform",
 "speed_distribution":"uniform",
 "pause_distribution":"none",
 "min_speed":10,
@@ -25,6 +27,6 @@
 "flight_length_distribution" : "none",
 "hand_shake":0,
 "window_size":1,
-"num_zois":2,
+"num_zois":5,
 "num_content_per_zoi":1
 }
