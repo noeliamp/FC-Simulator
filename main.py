@@ -23,8 +23,10 @@ with open('input.json') as f:
 
 num_sim = data["num_sim"]                               # number of simulations
 num_slots = data["num_slots"]                           # number of repetitions in one simulation
-density = data["num_users"]
+density_users = data["num_users"]
+density_zois = data["num_zois"]
 num_users_distribution = data["num_users_distribution"] # number of users distribution
+num_zois_distribution = data["num_zois_distribution"]   # number of zois distribution
 radius_of_tx = data["radius_of_tx"]                     # area to look for neigbors (dependent on contact range)
 max_area = data["max_area_squared"]                     # outer zone - max area size
 radius_of_interest = data["radius_of_interest"]         # inner zone - interest
@@ -34,7 +36,8 @@ min_speed = data["min_speed"]
 max_speed = data["max_speed"]
 min_pause = data["min_pause"]
 max_pause = data["max_pause"]
-user_generation_distribution = data["user_generation_distribution"]
+# zoi_generation_distribution = data["zoi_generation_distribution"]
+# user_generation_distribution = data["user_generation_distribution"]
 speed_distribution = data["speed_distribution"]
 pause_distribution = data["pause_distribution"]
 delta = data["delta"]                                   # time per slot
@@ -46,7 +49,6 @@ max_flight_length = data["max_flight_length"]
 flight_length_distribution = data["flight_length_distribution"]
 hand_shake = data["hand_shake"]
 window_size = data["window_size"]
-num_zois = data["num_zois"]
 num_content_per_zoi = data["num_content_per_zoi"]
 
 # different content size during simulations
@@ -67,7 +69,7 @@ rep_users_counter = 0
 out_users_counter = 0
 
 for s in range(0,num_sim):
-    np.random.seed(seed_list[s])
+    # np.random.seed(seed_list[s])
     print("SIMULATION--> ", s)
     print("content size ", content_size_list[s])
     # progress bar
@@ -83,17 +85,24 @@ for s in range(0,num_sim):
 
     # This creates N objects of User class
     if num_users_distribution == "poisson":
-        num_users = np.random.poisson(density)
+        num_users = np.random.poisson(density_users)
         print("Number of users:", num_users)
     else:
-        num_users=density
+        num_users=density_users
         print("Number of users:", num_users)
+
+    # This creates N objects of ZOI class
+    if num_zois_distribution == "poisson":
+        num_zois = np.random.poisson(density_zois)
+        print("Number of zois:", num_zois)
+    else:
+        num_zois=density_zois
+        print("Number of zois:", num_zois)
 
 
     # CREATION OF SCENARIO With num_zois number of zois
-    scenario = Scenario(radius_of_interest, radius_of_replication, radius_of_persistence, max_area, user_generation_distribution, 
-    speed_distribution,pause_distribution,min_pause,max_pause, min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length,
-    max_flight_length,flight_length_distribution,hand_shake,num_zois)
+    scenario = Scenario(radius_of_interest, radius_of_replication, radius_of_persistence, max_area,speed_distribution,pause_distribution,min_pause,max_pause, 
+    min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution,hand_shake,num_zois)
     
     # CREATION OF ONE CONTENT PER ZOI
     for z in range(0,scenario.num_zois):
@@ -108,16 +117,18 @@ for s in range(0,num_sim):
             # to compute the first availability (if node is not out it will have the message for sure)
             if user.zones[z] == "interest":
                 user.messages_list.extend(z.content_list)
+                print("LE DOY EL MENSAJE por interest ")
                 zoi_users_counter += 1
                 zoi_counter += 1
             
             if user.zones[z] == "replication":
                 user.messages_list.extend(z.content_list)
+                print("LE DOY EL MENSAJE por replication")
                 rep_users_counter += 1
                 rep_counter += 1
             
             if user.zones[z] == "persistence":
-                user.messages_list.extend(z.content_list)
+                # user.messages_list.extend(z.content_list)
                 per_users_counter += 1
                 per_counter += 1
             
@@ -152,6 +163,7 @@ for s in range(0,num_sim):
         a = 0
     else:
         a = (zoi_counter + rep_counter)/(zoi_users_counter+rep_users_counter)
+        print("PRIMERA COMPROBACION: ", rep_counter)
     a_avg_list = []
     # a_avg_list_squared = []
     num_slots_counter = 0
@@ -186,25 +198,6 @@ for s in range(0,num_sim):
         for j in range(0,num_users):
             scenario.usr_list[j].busy = False
             scenario.usr_list[j].randomDirection()
-            # After moving the node, compute to which zone it belongs to increase the right counter
-            for z in scenario.usr_list[j].zones.keys():
-                if scenario.usr_list[j].zones[z] == "interest":
-                    zoi_users_counter += 1
-                    if any(x.zoi == z for x in scenario.usr_list[j].messages_list):
-                        zoi_counter += 1
-                
-                if scenario.usr_list[j].zones[z] == "replication":
-                    rep_users_counter += 1
-                    if any(x.zoi == z for x in scenario.usr_list[j].messages_list):
-                        rep_counter += 1
-                
-                if scenario.usr_list[j].zones[z] == "persistence":
-                    per_users_counter += 1
-                    if any(x.zoi == z for x in scenario.usr_list[j].messages_list):
-                        per_counter += 1
-                
-                # we are not counting the nodes that are out of every zoi
-
 
 
         # Run contacts for every slot after mobility, at the beggining of every slot every user is available --> busy = Flase
@@ -220,8 +213,39 @@ for s in range(0,num_sim):
 
             failures_counter += scenario.usr_list[k].failures_counter
             attempts_counter += scenario.usr_list[k].attempts_counter
-            print("failures: ", failures_counter)
-            print("attempts: ", attempts_counter)
+     
+
+        # After moving the node and exchanging content, compute to which zone it belongs to increase the right counter
+        for j in range(0,num_users):
+            print("Entramos en user n: ", j)
+            print("a veeeer --> ",scenario.usr_list[j].messages_list)
+            for z in scenario.usr_list[j].zones.keys():
+                print("ENTRAMOS EN CADA Z", z.id)
+                if scenario.usr_list[j].zones[z] == "interest":
+                    zoi_users_counter += 1
+                    if len(scenario.usr_list[j].messages_list)>0:
+                        print("comprobandooo interest---> ", any(x.zoi == z.id for x in scenario.usr_list[j].messages_list))
+                        if any(x.zoi == z.id for x in scenario.usr_list[j].messages_list):
+                            print("Tiene el mensaje en interest")
+                            zoi_counter += 1
+                
+                if scenario.usr_list[j].zones[z] == "replication":
+                    rep_users_counter += 1
+                    if len(scenario.usr_list[j].messages_list)>0:
+                        print("comprobandooo replication---> ", any(x.zoi == z.id for x in scenario.usr_list[j].messages_list))
+                        if any(x.zoi == z.id for x in scenario.usr_list[j].messages_list):
+                            print("Tiene el mensaje en replication")
+                            rep_counter += 1
+                
+                if scenario.usr_list[j].zones[z] == "persistence":
+                    per_users_counter += 1
+                    if len(scenario.usr_list[j].messages_list)>0:
+                        print("comprobandooo persistence---> ", any(x.zoi == z.id for x in scenario.usr_list[j].messages_list))
+                        if any(x.zoi == z.id for x in scenario.usr_list[j].messages_list):
+                            print("Tiene el mensaje en persistence")
+                            per_counter += 1
+                
+                # we are not counting the nodes that are out of every zoi
 
         ################################## Dump data per slot in a file ############################################
         
@@ -236,13 +260,17 @@ for s in range(0,num_sim):
         attempts.append(attempts_counter)
 
         # we add the current slot availability to the list a_list
-        if (zoi_users_counter+rep_users_counter) == 0:
+        print("zoi_users_counter",zoi_users_counter,zoi_counter)
+        print("rep_users_counter",rep_users_counter,rep_counter)
+        print("per_users_counter",per_users_counter,per_counter)
+
+        if (zoi_users_counter + rep_users_counter) == 0:
             a = 0
         else:
             a = (zoi_counter + rep_counter)/(zoi_users_counter+rep_users_counter)
         a_list.append(a)
 
-        print("availability: " , a)
+        print("this availability: " , a)
 
         if num_slots_counter == 10:
             # Once we reach the desired number of slots per window, we compute the average of the availabilities for that window
@@ -292,8 +320,8 @@ for s in range(0,num_sim):
     list_of_lists_avg_10.append(a_avg_list)
 
     ###################### SELECT A FUNCTION TO DUMP DATA ###########################
-    # dump = Dump(scenario)
-    # dump.userLastPosition(uid)
+    dump = Dump(scenario)
+    dump.userLastPosition(uid)
     # dump.infoPerZone()
 
     ########################## End of printing ######################################
@@ -303,10 +331,10 @@ for s in range(0,num_sim):
     bar.finish()
     t1 = time.time()
     # print("Lenght of connection duration list: %d" % len(flat_list))
-    print ("Total time running: %s minutes" % str((t1-t0)/60))
+    print ("\nTotal time running: %s minutes" % str((t1-t0)/60))
 
 # print("list of averages: ", list_of_lists_avg_10)
-print("availability: ", avb_per_sim)
+print("last availability: ", avb_per_sim)
 np.savetxt(str(uid)+'/availability_points.txt', avb_per_sim , fmt="%1.3f")
 print("content_size: ", content_size_list[s],s)
 outfile = open(str(uid)+'/list_of_averages.txt', 'w')

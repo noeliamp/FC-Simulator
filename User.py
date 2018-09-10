@@ -9,7 +9,7 @@ class User:
 
     def __init__(self, id, posX, posY, scenario, max_memory):
 
-        # print ("Creating new user...")
+        print ("Creating new user...")
         self.id = id
         self.scenario = scenario
         self.total_memory = max_memory
@@ -64,27 +64,29 @@ class User:
         self.connection_duration = 0
         self.connection_duration_list = []
         self.calculateZones()
-        # self.displayUser()
+        self.displayUser()
 
     
     def displayUser(self):
         print("ID : ", self.id,  ", Total Memory: ", self.total_memory,  ", Used Memory: ", self.used_memory, ", PosX: ",self.x_list, 
-              ", PosY: ", self.y_list, ", Zones: ", self.zones, ", Is Paused: ", self.isPaused, ", Slots Paused: ", self.pause_slots, 
+              ", PosY: ", self.y_list, ", Is Paused: ", self.isPaused, ", Slots Paused: ", self.pause_slots, 
               ", Counter Paused: ", self.pause_counter, ", slot n: ", self.n, ", Message list: " , len(self.messages_list), ", Coordinates list: " , len(self.x_list))
-    
+        for z in self.zones:
+            print("ZOI ID: ", z.id)
+            print("Zone: ", self.zones[z])
     
     def calculateZones(self):
         self.canIexchange = False
         self.zones = OrderedDict()
         for z in self.scenario.zois_list:
             d = np.power(self.x_list[-1]- z.x,2) + np.power(self.y_list[-1]- z.y,2)
-            if d < np.power(z.radius_of_persistence,2):
+            if d < np.power(z.scenario.radius_of_persistence,2):
                 self.zones[z] = "persistence"
-            if d < np.power(z.radius_of_replication,2):
+            if d < np.power(z.scenario.radius_of_replication,2):
                 self.zones[z] = "replication"
-            if d < np.power(z.radius_of_interest,2):
+            if d < np.power(z.scenario.radius_of_interest,2):
                 self.zones[z] = "interest"
-            if d > np.power(z.radius_of_persistence,2):
+            if d > np.power(z.scenario.radius_of_persistence,2):
                 # We do not keep information about the zones where the node is out
                 if z in self.zones:
                     del self.zones[z]
@@ -273,7 +275,6 @@ class User:
                             break
                 if neighbour != None:
                     self.attempts_counter += 1
-                    print("attempts in user: ", self.attempts_counter)
 
                     # probability to exchange data with this neighbour
                     self.prob = np.random.uniform()
@@ -332,7 +333,6 @@ class User:
                         self.exchangeData(neighbour)
                     if self.prob <= 0.5:
                         self.failures_counter =  self.failures_counter + 1
-                        print("failure in user: ", self.failures_counter)
 
         
                     

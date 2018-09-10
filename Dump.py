@@ -23,6 +23,18 @@ class Dump:
         file.write(json.dumps(x))
         file.write(json.dumps("&"))
         file.write(json.dumps(y))
+        for z in self.scenario.zois_list:
+            file.write(json.dumps("&"))
+            file.write(json.dumps(z.x))
+            file.write(json.dumps("&"))
+            file.write(json.dumps(z.y))
+            file.write(json.dumps("&"))
+            file.write(json.dumps(self.scenario.radius_of_interest))
+            file.write(json.dumps("&"))
+            file.write(json.dumps(self.scenario.radius_of_replication))
+            file.write(json.dumps("&"))
+            file.write(json.dumps(self.scenario.radius_of_persistence))
+
         file.close()
 
     ####### how many nodes have the contents in each zone 

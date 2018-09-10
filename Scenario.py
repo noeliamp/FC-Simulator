@@ -1,17 +1,16 @@
 from Zoi import Zoi
+import numpy as np
 
 class Scenario:
     'Common base class for all scenarios'
 
-    def __init__(self, radius_of_interest, radius_of_replication, radius_of_persistence, max_area, user_generation_distribution, 
-    speed_distribution,pause_distribution,min_pause,max_pause,min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, 
-    max_flight_length,flight_length_distribution, hand_shake,num_zois):
-        # print ("Creating new scenario...")
+    def __init__(self, radius_of_interest, radius_of_replication, radius_of_persistence, max_area, speed_distribution,pause_distribution,min_pause,max_pause,
+    min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois):
+        print ("Creating new scenario...")
         self.radius_of_interest = radius_of_interest
         self.radius_of_replication = radius_of_replication
         self.radius_of_persistence = radius_of_persistence
         self.max_area = max_area
-        self.user_generation_distribution = user_generation_distribution
         self.speed_distribution = speed_distribution
         self.pause_distribution = pause_distribution
         self.min_speed = min_speed
@@ -33,7 +32,8 @@ class Scenario:
         self.zois_list = []
         self.num_zois = num_zois
         for i in range(0,self.num_zois):
-            zoi = Zoi(i, self)
+            zoi = Zoi(i, np.random.uniform(-self.max_area + self.radius_of_persistence, self.max_area - self.radius_of_persistence),
+            np.random.uniform(-self.max_area + self.radius_of_persistence, self.max_area - self.radius_of_persistence),self)
             self.zois_list.append(zoi)
 
         # self.displayScenario()
