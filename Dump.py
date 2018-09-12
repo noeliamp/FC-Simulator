@@ -13,9 +13,12 @@ class Dump:
     def userLastPosition(self,uid):
         x = []
         y = []
+        ids = []
+        zois = []
         for i in range(0,self.scenario.num_users):
             x.append(self.scenario.usr_list[i].x_list[-1])
             y.append(self.scenario.usr_list[i].y_list[-1])
+            print("User id: ", self.scenario.usr_list[i].id, "position x: ", self.scenario.usr_list[i].x_list[-1] , "position y: ", self.scenario.usr_list[i].y_list[-1])
 
         # print(x)
         # print(y)
@@ -35,6 +38,16 @@ class Dump:
             file.write(json.dumps("&"))
             file.write(json.dumps(self.scenario.radius_of_persistence))
 
+        for i in range(0,self.scenario.num_users):
+            ids.append(self.scenario.usr_list[i].id)
+
+        for i in self.scenario.zois_list:
+            zois.append(i.id)
+        
+        file.write(json.dumps("&"))
+        file.write(json.dumps(ids))
+        file.write(json.dumps("&"))
+        file.write(json.dumps(zois))
         file.close()
 
     ####### how many nodes have the contents in each zone 

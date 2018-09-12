@@ -15,11 +15,13 @@ import uuid
 import os
 import base64
 import hashlib
+from shutil import copyfile
 
 t0 = time.time()
 uid = base64.urlsafe_b64encode(hashlib.md5(os.urandom(128)).digest())[:8]
 with open('input.json') as f:
     data = json.load(f)
+
 
 num_sim = data["num_sim"]                               # number of simulations
 num_slots = data["num_slots"]                           # number of repetitions in one simulation
@@ -36,8 +38,6 @@ min_speed = data["min_speed"]
 max_speed = data["max_speed"]
 min_pause = data["min_pause"]
 max_pause = data["max_pause"]
-# zoi_generation_distribution = data["zoi_generation_distribution"]
-# user_generation_distribution = data["user_generation_distribution"]
 speed_distribution = data["speed_distribution"]
 pause_distribution = data["pause_distribution"]
 delta = data["delta"]                                   # time per slot
@@ -69,7 +69,7 @@ rep_users_counter = 0
 out_users_counter = 0
 
 for s in range(0,num_sim):
-    # np.random.seed(seed_list[s])
+    np.random.seed(seed_list[s])
     print("SIMULATION--> ", s)
     print("content size ", content_size_list[s])
     # progress bar
@@ -81,7 +81,9 @@ for s in range(0,num_sim):
     f = open(str(uid)+'/out-'+str(s)+'.txt', 'w')
     sys.stdout = f      
 
-    usr_list = []        # list of users in the whole scenario
+    copyfile('input.json', str(uid)+'/input.json') # Copy the corresponding input file into the folder
+
+    usr_list = []        # list of users in the entire scenario
 
     # This creates N objects of User class
     if num_users_distribution == "poisson":
@@ -91,6 +93,7 @@ for s in range(0,num_sim):
         num_users=density_users
         print("Number of users:", num_users)
 
+    print("Content size: ", content_size_list[s])
     # This creates N objects of ZOI class
     if num_zois_distribution == "poisson":
         num_zois = np.random.poisson(density_zois)
@@ -98,6 +101,7 @@ for s in range(0,num_sim):
     else:
         num_zois=density_zois
         print("Number of zois:", num_zois)
+
 
 
     # CREATION OF SCENARIO With num_zois number of zois
@@ -117,13 +121,11 @@ for s in range(0,num_sim):
             # to compute the first availability (if node is not out it will have the message for sure)
             if user.zones[z] == "interest":
                 user.messages_list.extend(z.content_list)
-                print("LE DOY EL MENSAJE por interest ")
                 zoi_users_counter += 1
                 zoi_counter += 1
             
             if user.zones[z] == "replication":
                 user.messages_list.extend(z.content_list)
-                print("LE DOY EL MENSAJE por replication")
                 rep_users_counter += 1
                 rep_counter += 1
             
@@ -144,8 +146,6 @@ for s in range(0,num_sim):
 
     # add the list of users to every scenario
     scenario.usr_list = usr_list
-
-
 
     slots = []
     zoi = []
@@ -219,6 +219,7 @@ for s in range(0,num_sim):
         for j in range(0,num_users):
             print("Entramos en user n: ", j)
             print("a veeeer --> ",scenario.usr_list[j].messages_list)
+            print("zois ---> ", scenario.usr_list[j].zones)
             for z in scenario.usr_list[j].zones.keys():
                 print("ENTRAMOS EN CADA Z", z.id)
                 if scenario.usr_list[j].zones[z] == "interest":
