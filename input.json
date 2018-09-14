@@ -1,7 +1,7 @@
 {
-"num_sim" : 20,
+"num_sim" : 1,
 "num_slots" :12000,
-"num_users":200,
+"num_users":100,
 "num_zois":8,
 "num_users_distribution": "none",
 "num_zois_distribution": "none",

@@ -57,12 +57,13 @@ class Dump:
     ####### Lists for statistics 
 
     def statisticsList(self,slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts):
-         np.savetxt(str(self.uid)+'/dump-'+str(self.s)+'.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts)), 
+         np.savetxt(str(self.uid)+'/dump-'+str(self.s)+'.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts)),
          fmt="%i %i %i %i %i %i %i %i %i")
 
     ####### Connection duration list
 
     def connectionDuration(self):
+        connection_duration_list = []
         for k in range(0,self.scenario.num_users):
             connection_duration_list.append(self.scenario.usr_list[k].connection_duration_list)
 
