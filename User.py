@@ -41,8 +41,8 @@ class User:
         self.pause_counter = 1
         self.isPaused = False
         self.N12 = np.inf            # slots to reach target position (x2,y2) 
-        self.n = 1                # current slot within N12 for random waypoint
-        self.m = 1                # current slot for random Direction
+        self.n = 1                   # current slot within N12 for random waypoint
+        self.m = 1                   # current slot for random Direction
         self.rebound_counter = 0
         self.neighbours_list = []
         self.counter_list = []
@@ -336,7 +336,7 @@ class User:
 
         
                     
-    # method to check which DB is smaller and start exchanging it. 
+    # Method to check which DB is smaller and start exchanging it. 
     # At this point We have the messages to be exchange (exchange_list) and the total list sizes (exchange_size).
 
     def exchangeData(self,neighbour):

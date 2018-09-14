@@ -60,6 +60,7 @@ print(uid)
 
 avb_per_sim = []
 list_of_lists_avg_10 = []
+
 zoi_counter= 0
 per_counter = 0
 rep_counter= 0
@@ -68,8 +69,9 @@ per_users_counter = 0
 rep_users_counter = 0
 out_users_counter = 0
 
+################## Loop per simulation
 for s in range(0,num_sim):
-    np.random.seed(seed_list[s])
+    # np.random.seed(seed_list[s])
     print("SIMULATION--> ", s)
     print("content size ", content_size_list[s])
     # progress bar
@@ -94,6 +96,7 @@ for s in range(0,num_sim):
         print("Number of users:", num_users)
 
     print("Content size: ", content_size_list[s])
+
     # This creates N objects of ZOI class
     if num_zois_distribution == "poisson":
         num_zois = np.random.poisson(density_zois)
@@ -101,7 +104,6 @@ for s in range(0,num_sim):
     else:
         num_zois=density_zois
         print("Number of zois:", num_zois)
-
 
 
     # CREATION OF SCENARIO With num_zois number of zois
@@ -132,7 +134,7 @@ for s in range(0,num_sim):
             if user.zones[z] == "persistence":
                 # user.messages_list.extend(z.content_list)
                 per_users_counter += 1
-                per_counter += 1
+                # per_counter += 1
             
             # we are not counting nodes that are out of every zoi  
 
@@ -159,11 +161,13 @@ for s in range(0,num_sim):
     attempts = []
     connection_duration_list = []
     a_list = []
+
     if (zoi_users_counter+rep_users_counter) == 0:
         a = 0
     else:
         a = (zoi_counter + rep_counter)/(zoi_users_counter+rep_users_counter)
         print("PRIMERA COMPROBACION: ", rep_counter)
+
     a_avg_list = []
     # a_avg_list_squared = []
     num_slots_counter = 0
@@ -171,7 +175,7 @@ for s in range(0,num_sim):
     th=0.4
     c = 0
     
-    # for i in range(0,num_slots):
+    ################## Loop per slot into a simulation
     while c < num_slots and a > 0:
     # aux < th:
         zoi_counter= 0
@@ -180,30 +184,26 @@ for s in range(0,num_sim):
         zoi_users_counter = 0
         per_users_counter = 0
         rep_users_counter = 0
-        out_users_counter = 0
         CI = 0
         failures_counter = 0
         attempts_counter = 0
         
         bar.update(c+1)
-        # sleep(0.1)
         slots.append(c)
         num_slots_counter += 1
         c += 1
 
-        # Run mobility for every slot
-        # print ('\n Lets run mobility slot: %d' % i)
-        # Nobody is BUSY at the beggining of a slot
-        # Move every pedestrian once
+        # shuffle users lists
+        np.random.shuffle(scenario.usr_list)
+
+        # Run mobility for every slot           
+        # Nobody should be BUSY at the beggining of a slot (busy means that the node has had a connection already in the current slot, so it cannot have another one)
+        # Move every pedestrians once
         for j in range(0,num_users):
             scenario.usr_list[j].busy = False
             scenario.usr_list[j].randomDirection()
 
-
-        # Run contacts for every slot after mobility, at the beggining of every slot every user is available --> busy = Flase
-        # print ('\n Lets run contacts slot: %d' % i)
-        # shuffle users lists
-        np.random.shuffle(scenario.usr_list)
+        # Run contacts for every slot after mobility. Attempts and failures are set to 0 at the beggining of every slot.   
         for k in range(0,num_users):
             scenario.usr_list[k].failures_counter = 0
             scenario.usr_list[k].attempts_counter = 0
@@ -215,35 +215,25 @@ for s in range(0,num_sim):
             attempts_counter += scenario.usr_list[k].attempts_counter
      
 
-        # After moving the node and exchanging content, compute to which zone it belongs to increase the right counter
+        # After moving the node and exchanging content, check to which zone it belongs to increase the right counter
         for j in range(0,num_users):
-            print("Entramos en user n: ", j)
-            print("a veeeer --> ",scenario.usr_list[j].messages_list)
-            print("zois ---> ", scenario.usr_list[j].zones)
             for z in scenario.usr_list[j].zones.keys():
-                print("ENTRAMOS EN CADA Z", z.id)
                 if scenario.usr_list[j].zones[z] == "interest":
                     zoi_users_counter += 1
                     if len(scenario.usr_list[j].messages_list)>0:
-                        print("comprobandooo interest---> ", any(x.zoi == z.id for x in scenario.usr_list[j].messages_list))
                         if any(x.zoi == z.id for x in scenario.usr_list[j].messages_list):
-                            print("Tiene el mensaje en interest")
                             zoi_counter += 1
                 
                 if scenario.usr_list[j].zones[z] == "replication":
                     rep_users_counter += 1
                     if len(scenario.usr_list[j].messages_list)>0:
-                        print("comprobandooo replication---> ", any(x.zoi == z.id for x in scenario.usr_list[j].messages_list))
                         if any(x.zoi == z.id for x in scenario.usr_list[j].messages_list):
-                            print("Tiene el mensaje en replication")
                             rep_counter += 1
                 
                 if scenario.usr_list[j].zones[z] == "persistence":
                     per_users_counter += 1
                     if len(scenario.usr_list[j].messages_list)>0:
-                        print("comprobandooo persistence---> ", any(x.zoi == z.id for x in scenario.usr_list[j].messages_list))
                         if any(x.zoi == z.id for x in scenario.usr_list[j].messages_list):
-                            print("Tiene el mensaje en persistence")
                             per_counter += 1
                 
                 # we are not counting the nodes that are out of every zoi
@@ -256,15 +246,14 @@ for s in range(0,num_sim):
         zoi_users.append(zoi_users_counter)
         rep_users.append(rep_users_counter)
         per_users.append(per_users_counter)
-        # out_users.append(out_users_counter)
         failures.append(failures_counter)
         attempts.append(attempts_counter)
 
-        # we add the current slot availability to the list a_list
-        print("zoi_users_counter",zoi_users_counter,zoi_counter)
-        print("rep_users_counter",rep_users_counter,rep_counter)
-        print("per_users_counter",per_users_counter,per_counter)
+        print("zoi_users_counter ",zoi_users_counter,zoi_counter)
+        print("rep_users_counter ",rep_users_counter,rep_counter)
+        print("per_users_counter ",per_users_counter,per_counter)
 
+        # we add the current slot availability to the list a_list
         if (zoi_users_counter + rep_users_counter) == 0:
             a = 0
         else:
@@ -299,45 +288,36 @@ for s in range(0,num_sim):
 
             num_slots_counter = 0
             a_list = []
-        
+    
+    # Add the average of the availability averages in this simulation to the final list of availabilities (one point per simulation)
+    avb_per_sim.append(np.average(a_avg_list))
+    list_of_lists_avg_10.append(a_avg_list)
+
+    # At the end of every simulation we need to close connections and add it to the list of connection durations
     for k in range(0,num_users):
         if scenario.usr_list[k].ongoing_conn == True:
             scenario.usr_list[k].connection_duration_list.append(scenario.usr_list[k].connection_duration)
             scenario.usr_list[k].ongoing_conn = False
             scenario.usr_list[k].prev_peer.ongoing_conn = False
 
-    np.savetxt(str(uid)+'/dump-'+str(s)+'.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts)), 
-    fmt="%i %i %i %i %i %i %i %i %i")
 
-
-    for k in range(0,num_users):
-        connection_duration_list.append(scenario.usr_list[k].connection_duration_list)
-
-    flat_list = [item for sublist in connection_duration_list for item in sublist]
-    np.savetxt(str(uid)+'/connection-duration-list-'+str(s)+'.txt', flat_list , fmt="%i")
-
-    # Add the average of the availability averages in this simulation to the final list of availabilities (one point per simulation)
-    avb_per_sim.append(np.average(a_avg_list))
-    list_of_lists_avg_10.append(a_avg_list)
-
-    ###################### SELECT A FUNCTION TO DUMP DATA ###########################
-    dump = Dump(scenario)
-    dump.userLastPosition(uid)
-    # dump.infoPerZone()
-
-    ########################## End of printing ######################################
+    ###################### Functions to dump data per simulation #########################
+    dump = Dump(scenario,uid,s)
+    dump.userLastPosition()
+    dump.statisticsList(slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts)
+    dump.connectionDuration()
+    
+    ########################## End of printing in simulation ##############################
     sys.stdout = orig_stdout
     f.close()
-
     bar.finish()
     t1 = time.time()
-    # print("Lenght of connection duration list: %d" % len(flat_list))
-    print ("\nTotal time running: %s minutes" % str((t1-t0)/60))
+    print ("Total time running: %s minutes \n" % str((t1-t0)/60))
 
-# print("list of averages: ", list_of_lists_avg_10)
+########################## End of simulations, print and dump relevant final info ##############################
+
 print("last availability: ", avb_per_sim)
 np.savetxt(str(uid)+'/availability_points.txt', avb_per_sim , fmt="%1.3f")
-print("content_size: ", content_size_list[s],s)
 outfile = open(str(uid)+'/list_of_averages.txt', 'w')
 for result in list_of_lists_avg_10:
     outfile.writelines(str(result))

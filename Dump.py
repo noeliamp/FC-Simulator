@@ -1,16 +1,20 @@
 from collections import OrderedDict
 import json
+import numpy as np
+
 
 ###################### DATA DUMP  ################################################
 class Dump:
     'Common base class for all dumps'
 
-    def __init__(self,scenario):
+    def __init__(self,scenario,uid,s):
         self.id = 1
         self.scenario= scenario
+        self.uid = uid 
+        self.s = s
 
     ####### last user's position
-    def userLastPosition(self,uid):
+    def userLastPosition(self):
         x = []
         y = []
         ids = []
@@ -22,7 +26,7 @@ class Dump:
 
         # print(x)
         # print(y)
-        file = open(str(uid) +'/userLastPosition.txt', "w")
+        file = open(str(self.uid) +'/userLastPosition-'+str(self.s)+'.txt', "w")
         file.write(json.dumps(x))
         file.write(json.dumps("&"))
         file.write(json.dumps(y))
@@ -50,35 +54,19 @@ class Dump:
         file.write(json.dumps(zois))
         file.close()
 
-    ####### how many nodes have the contents in each zone 
+    ####### Lists for statistics 
 
-    def infoPerZone(self):
-        interest = OrderedDict()
-        replication = OrderedDict()
-        persistence = OrderedDict()
-        outer = OrderedDict()
+    def statisticsList(self,slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts):
+         np.savetxt(str(self.uid)+'/dump-'+str(self.s)+'.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts)), 
+         fmt="%i %i %i %i %i %i %i %i %i")
 
-        interest["interest"]=OrderedDict()
-        replication["replication"]=OrderedDict()
-        persistence["persistence"]= OrderedDict()
-        outer["outer"] = OrderedDict()      
+    ####### Connection duration list
 
-        for i in self.scenario.usr_list:
-            if i.zone == "interest":
-                interest["interest"][i.id] = len(i.messages_list)
-            if i.zone == "replication":
-                replication["replication"][i.id] = len(i.messages_list)
-            if i.zone == "persistence":
-                persistence["persistence"][i.id] = len(i.messages_list)
-            if i.zone == "outer":
-                outer["outer"][i.id] = len(i.messages_list)
+    def connectionDuration(self):
+        for k in range(0,self.scenario.num_users):
+            connection_duration_list.append(self.scenario.usr_list[k].connection_duration_list)
 
-        with open('infoPerZone.txt', 'w') as file:
-            file.write(json.dumps(interest))
-            file.write(json.dumps(replication))
-            file.write(json.dumps(persistence))
-            file.write(json.dumps(outer))
-
-        file.close()
+        flat_list = [item for sublist in connection_duration_list for item in sublist]
+        np.savetxt(str(self.uid)+'/connection-duration-list-'+str(self.s)+'.txt', flat_list , fmt="%i") 
 
 
