@@ -62,12 +62,28 @@ class Dump:
 
     ####### Connection duration list
 
-    def connectionDuration(self):
+    def connectionDurationAndMore(self):
         connection_duration_list = []
+        successes_list = []
+        ex_list = []
         for k in range(0,self.scenario.num_users):
             connection_duration_list.append(self.scenario.usr_list[k].connection_duration_list)
+            successes_list.append(self.scenario.usr_list[k].successes_list)
+            ex_list.append(self.scenario.usr_list[k].ex_list_print)
 
-        flat_list = [item for sublist in connection_duration_list for item in sublist]
-        np.savetxt(str(self.uid)+'/connection-duration-list-'+str(self.s)+'.txt', flat_list , fmt="%i") 
+
+        flat_list_con = [item for sublist in connection_duration_list for item in sublist]
+        flat_list_suc = [item for sublist in successes_list for item in sublist]
+        flat_list_exc = [item for sublist in ex_list for item in sublist]
+
+        np.savetxt(str(self.uid)+'/connection-duration-list-'+str(self.s)+'.txt', flat_list_con , fmt="%i") 
+        np.savetxt(str(self.uid)+'/successes-list-'+str(self.s)+'.txt', flat_list_suc , fmt="%i") 
+        np.savetxt(str(self.uid)+'/exchange-list-'+str(self.s)+'.txt', flat_list_exc , fmt="%i") 
 
 
+    ####### Availability per zoi per slot
+
+    def availabilityPerZoi(self,availability_per_zoi):
+        f = open(str(self.uid)+'/availability-per-zoi-'+str(self.s)+'.txt',"w")
+        f.write(str(availability_per_zoi))
+        f.close()

@@ -52,7 +52,9 @@ window_size = data["window_size"]
 num_content_per_zoi = data["num_content_per_zoi"]
 
 # different content size during simulations
-content_size_list = [100,9310441.379,18620782.76,27931124.14,37241465.52,46551806.9,55862148.28,65172489.66,74482831.03,83793172.41,93103513.79,102413855.2,111724196.6,121034537.9,130344879.3,139655220.7,148965562.1,158275903.4,167586244.8,176896586.2,186206927.6,195517269,204827610.3,214137951.7,223448293.1,232758634.5,242068975.9,251379317.2,260689658.6,270000000]
+# content_size_list = [100,9310441.379,18620782.76,27931124.14,37241465.52,46551806.9,55862148.28,65172489.66,74482831.03,83793172.41,93103513.79,102413855.2,111724196.6,121034537.9,130344879.3,139655220.7,148965562.1,158275903.4,167586244.8,176896586.2,186206927.6,195517269,204827610.3,214137951.7,223448293.1,232758634.5,242068975.9,251379317.2,260689658.6,270000000]
+content_size_list = [1000,100000,1000000]
+
 seed_list = [15482669,15482681,15482683,15482711,15482729,15482941,15482947,15482977,15482993,15483023,15483029,15483067,15483077,15483079,15483089,15483101,15483103,15482743,15482771,15482773,15482783,15482807,15482809,15482827,15482851,15482861,15482893,15482911,15482917,15482923]
 uid = str(max_speed) + "-" + str(radius_of_tx) + "-" + str(radius_of_replication) + "-" + str(radius_of_persistence) + "-"+ str(uid) 
 os.mkdir(uid)
@@ -68,12 +70,12 @@ zoi_users_counter = OrderedDict()
 per_users_counter = OrderedDict()
 rep_users_counter = OrderedDict()
 
-
+content_size_index = 2
 ################## Loop per simulation
 for s in range(0,num_sim):
     # np.random.seed(seed_list[s])
     print("SIMULATION--> ", s)
-    print("content size ", content_size_list[s])
+    print("content size ", content_size_list[content_size_index])
     # progress bar
     bar = progressbar.ProgressBar(maxval=num_slots, \
         widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
@@ -95,7 +97,7 @@ for s in range(0,num_sim):
         num_users=density_users
         print("Number of users:", num_users)
 
-    print("Content size: ", content_size_list[s])
+    print("Content size: ", content_size_list[content_size_index])
 
     # This creates N objects of ZOI class
     if num_zois_distribution == "poisson":
@@ -112,7 +114,7 @@ for s in range(0,num_sim):
     
     # CREATION OF ONE CONTENT PER ZOI and initializing counters of nodes with and without content per ZOI
     for z in scenario.zois_list:
-        msg = Message(uuid.uuid4(),content_size_list[s],z)
+        msg = Message(uuid.uuid4(),content_size_list[content_size_index],z)
         z.content_list.append(msg)
         zoi_counter[z]= 0
         per_counter[z] = 0
@@ -167,6 +169,7 @@ for s in range(0,num_sim):
     attempts = []
     a_list = []
     a_per_zoi = OrderedDict()
+    availability_per_zoi = OrderedDict()
 
     print("zoi_users_counter ",zoi_users_counter.values(),zoi_counter.values())
     print("rep_users_counter ",rep_users_counter.values(),rep_counter.values())
@@ -179,6 +182,8 @@ for s in range(0,num_sim):
             av = (zoi_counter[z] + rep_counter[z])/(zoi_users_counter[z]+rep_users_counter[z])
 
         a_per_zoi[z] = av
+        availability_per_zoi[z] = []
+
 
     a = np.average(a_per_zoi.values())
 
@@ -280,6 +285,7 @@ for s in range(0,num_sim):
             else:
                 av = (zoi_counter[z] + rep_counter[z])/(zoi_users_counter[z]+rep_users_counter[z])
             a_per_zoi[z] = av
+            availability_per_zoi[z].append(av)
 
         a = np.average(a_per_zoi.values())
         a_list.append(a)
@@ -322,6 +328,8 @@ for s in range(0,num_sim):
     for k in range(0,num_users):
         if scenario.usr_list[k].ongoing_conn == True:
             scenario.usr_list[k].connection_duration_list.append(scenario.usr_list[k].connection_duration)
+            scenario.usr_list[k].successes_list.append(scenario.usr_list[k].suc+scenario.usr_list[k].prev_peer.suc)
+            scenario.usr_list[k].ex_list_print.append(len(scenario.usr_list[k].exchange_list)+len(scenario.usr_list[k].prev_peer.exchange_list))
             scenario.usr_list[k].ongoing_conn = False
             scenario.usr_list[k].prev_peer.ongoing_conn = False
 
@@ -329,8 +337,9 @@ for s in range(0,num_sim):
     ###################### Functions to dump data per simulation #########################
     dump = Dump(scenario,uid,s)
     dump.userLastPosition()
-    # dump.statisticsList(slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts)
-    dump.connectionDuration()
+    dump.statisticsList(slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts)
+    dump.connectionDurationAndMore()
+    dump.availabilityPerZoi(availability_per_zoi.values())
     
     ########################## End of printing in simulation ##############################
     sys.stdout = orig_stdout

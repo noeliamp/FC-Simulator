@@ -63,6 +63,9 @@ class User:
         self.attempts_counter = 0
         self.connection_duration = 0
         self.connection_duration_list = []
+        self.successes_list = []
+        self.suc = 0
+        self.ex_list_print = []
         self.calculateZones()
         self.displayUser()
 
@@ -88,7 +91,7 @@ class User:
                 self.zones[z] = "interest"
             if d > np.power(z.scenario.radius_of_persistence,2):
                 # We do not keep information about the zones where the node is out
-                if z in self.zones:
+                if self.ongoing_conn == False and z in self.zones:
                     del self.zones[z]
                     self.deleteMessages(z)
 
@@ -238,9 +241,14 @@ class User:
                 if self.ongoing_conn == True and self.prev_peer not in self.neighbours_list:
                     # print("I have a prev peer and it is far. ", self.prev_peer.id, self.prev_peer.zone)
                     self.connection_duration_list.append(self.connection_duration)
+                    self.successes_list.append(self.suc+self.prev_peer.suc)
+                    self.ex_list_print.append(len(self.exchange_list)+len(self.prev_peer.exchange_list))
+
                     # self.prev_peer.connection_duration_list.append(self.prev_peer.connection_duration)
                     self.connection_duration = 0
                     self.prev_peer.connection_duration = 0
+                    self.suc = 0
+                    self.prev_peer.suc = 0
                     # If in previous slot we have exchanged bits from next messages we have to remove them from the used memory because we did't manage to
                     # exchange the whole message so we loose it. Basically --> only reset used_memory because the msg has not been added to the list.
                     reset_used_memory = 0
@@ -414,22 +422,26 @@ class User:
                         # print("used memory: ", neighbour.used_memory)
                         # print(self.scenario.mbs, self.scenario.used_mbs)
                 self.scenario.used_mbs_per_slot.append(cou)
+
             # Now we exchange the db based on the already exchanged bytes of messages
             # print("LEEEEEEEN--> ", len(self.counter_list),len(neighbour.counter_list), len(self.exchange_list) , len(neighbour.exchange_list) )
             if len(self.exchange_list) > 0:
                 for i in range(0,len(self.counter_list)):
                     # print(i)
                     # print(self.counter_list[i], self.exchange_counter, self.exchange_list[i] not in neighbour.messages_list, len(self.exchange_list)>0)
-                    if (self.counter_list[i] <= self.exchange_counter) and (self.exchange_list[i] not in neighbour.messages_list) and (len(self.exchange_list)>0):
-                        # print("Adding message to neighbour DB: ", self.exchange_list[i].size)
-                        neighbour.messages_list.append(self.exchange_list[i])
+                    if self.counter_list[i] <= self.exchange_counter and self.exchange_list[i] not in neighbour.messages_list:
+                            # print("Adding message to neighbour DB: ", self.exchange_list[i].size)
+                            neighbour.messages_list.append(self.exchange_list[i])
+                            self.suc += 1
+                        
             if len(neighbour.exchange_list) > 0:
                 for j in range(0,len(neighbour.counter_list)):
                     # print(j)
                     # print(neighbour.counter_list[j], neighbour.exchange_counter, neighbour.exchange_list[j] not in self.messages_list,len(neighbour.exchange_list)>0)
-                    if (neighbour.counter_list[j] <= neighbour.exchange_counter) and (neighbour.exchange_list[j] not in self.messages_list) and (len(neighbour.exchange_list)>0):
-                        # print("Adding message to my DB: ", neighbour.exchange_list[j].size)
-                        self.messages_list.append(neighbour.exchange_list[j])
+                    if neighbour.counter_list[j] <= neighbour.exchange_counter and (neighbour.exchange_list[j] not in self.messages_list):
+                            # print("Adding message to my DB: ", neighbour.exchange_list[j].size)
+                            self.messages_list.append(neighbour.exchange_list[j])
+                            neighbour.suc += 1
 
         # After exchanging both peers part of the db, set back the booleans for next slot
         self.db_exchange = False
@@ -450,9 +462,14 @@ class User:
         if self.exchange_counter == self.exchange_size and neighbour.exchange_counter == neighbour.exchange_size:
             # print("ENTRO AQUI", self.exchange_counter, self.exchange_size,neighbour.exchange_counter, neighbour.exchange_size, self.used_memory, self.used_memory)
             self.connection_duration_list.append(self.connection_duration)
+            self.successes_list.append(self.suc+neighbour.suc)
+            self.ex_list_print.append(len(self.exchange_list)+len(neighbour.exchange_list))
+
             # neighbour.connection_duration_list.append(neighbour.connection_duration)
             self.connection_duration = 0
             neighbour.connection_duration = 0
+            self.suc = 0
+            neighbour.suc = 0
             self.ongoing_conn = False
             neighbour.ongoing_conn = False
             self.exchange_list = []
