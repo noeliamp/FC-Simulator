@@ -1,6 +1,6 @@
 {
-"num_sim" : 10,
-"num_slots" :12000,
+"num_sim" : 1,
+"num_slots" :36000,
 "num_users":200,
 "num_zois":8,
 "num_users_distribution": "none",
@@ -11,7 +11,7 @@
 "max_speed":10,
 "min_pause":5,
 "max_pause":55,
-"radius_of_tx":30,
+"radius_of_tx":15,
 "radius_of_interest":0,
 "radius_of_replication":50,
 "radius_of_persistence":70,

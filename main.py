@@ -328,8 +328,10 @@ for s in range(0,num_sim):
     for k in range(0,num_users):
         if scenario.usr_list[k].ongoing_conn == True:
             scenario.usr_list[k].connection_duration_list.append(scenario.usr_list[k].connection_duration)
-            scenario.usr_list[k].successes_list.append(scenario.usr_list[k].suc+scenario.usr_list[k].prev_peer.suc)
-            scenario.usr_list[k].ex_list_print.append(len(scenario.usr_list[k].exchange_list)+len(scenario.usr_list[k].prev_peer.exchange_list))
+            scenario.usr_list[k].successes_list_A.append(scenario.usr_list[k].suc)
+            scenario.usr_list[k].successes_list_B.append(scenario.usr_list[k].prev_peer.suc)
+            scenario.usr_list[k].ex_list_print_A.append(len(scenario.usr_list[k].exchange_list))
+            scenario.usr_list[k].ex_list_print_B.append(len(scenario.usr_list[k].prev_peer.exchange_list))
             scenario.usr_list[k].ongoing_conn = False
             scenario.usr_list[k].prev_peer.ongoing_conn = False
 

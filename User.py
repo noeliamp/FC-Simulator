@@ -63,9 +63,11 @@ class User:
         self.attempts_counter = 0
         self.connection_duration = 0
         self.connection_duration_list = []
-        self.successes_list = []
+        self.successes_list_A = []
         self.suc = 0
-        self.ex_list_print = []
+        self.successes_list_B = []
+        self.ex_list_print_A = []
+        self.ex_list_print_B = []
         self.calculateZones()
         self.displayUser()
 
@@ -241,8 +243,11 @@ class User:
                 if self.ongoing_conn == True and self.prev_peer not in self.neighbours_list:
                     # print("I have a prev peer and it is far. ", self.prev_peer.id, self.prev_peer.zone)
                     self.connection_duration_list.append(self.connection_duration)
-                    self.successes_list.append(self.suc+self.prev_peer.suc)
-                    self.ex_list_print.append(len(self.exchange_list)+len(self.prev_peer.exchange_list))
+                    self.successes_list_A.append(self.suc)
+                    self.successes_list_B.append(self.prev_peer.suc)
+
+                    self.ex_list_print_A.append(len(self.exchange_list))
+                    self.ex_list_print_B.append(len(self.prev_peer.exchange_list))
 
                     # self.prev_peer.connection_duration_list.append(self.prev_peer.connection_duration)
                     self.connection_duration = 0
@@ -462,8 +467,11 @@ class User:
         if self.exchange_counter == self.exchange_size and neighbour.exchange_counter == neighbour.exchange_size:
             # print("ENTRO AQUI", self.exchange_counter, self.exchange_size,neighbour.exchange_counter, neighbour.exchange_size, self.used_memory, self.used_memory)
             self.connection_duration_list.append(self.connection_duration)
-            self.successes_list.append(self.suc+neighbour.suc)
-            self.ex_list_print.append(len(self.exchange_list)+len(neighbour.exchange_list))
+            self.successes_list_A.append(self.suc)
+            self.successes_list_B.append(neighbour.suc)
+
+            self.ex_list_print_A.append(len(self.exchange_list))
+            self.ex_list_print_B.append(len(neighbour.exchange_list))
 
             # neighbour.connection_duration_list.append(neighbour.connection_duration)
             self.connection_duration = 0
