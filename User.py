@@ -51,7 +51,7 @@ class User:
         self.hand_shake = self.scenario.hand_shake/self.scenario.delta
         self.hand_shake_counter = 0
         self.prob = 0
-        if self.scenario.flight_length_distribution == "integer":
+        if self.scenario.flight_length_distribution == "uniform":
             self.flight_length = np.random.randint(self.scenario.min_flight_length, self.scenario.max_flight_length)
         else:
             self.flight_length = np.inf

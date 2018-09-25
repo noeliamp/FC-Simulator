@@ -8,7 +8,7 @@ import json
 from collections import OrderedDict
 import sys, os
 import uuid
-import progressbar
+# import progressbar
 from time import sleep
 import time
 import uuid
@@ -62,6 +62,7 @@ print(uid)
 
 avb_per_sim = []
 list_of_lists_avg_10 = []
+avb_per_sim_per_slot= []
 
 zoi_counter= OrderedDict()
 per_counter = OrderedDict()
@@ -70,7 +71,7 @@ zoi_users_counter = OrderedDict()
 per_users_counter = OrderedDict()
 rep_users_counter = OrderedDict()
 
-content_size_index = 0
+content_size_index = 4
 
 copyfile('input.json', str(uid)+'/input.json') # Copy the corresponding input file into the folder
 ################## Loop per simulation
@@ -79,9 +80,9 @@ for s in range(0,num_sim):
     print("SIMULATION--> ", s)
     print("content size ", content_size_list[content_size_index])
     # progress bar
-    bar = progressbar.ProgressBar(maxval=num_slots, \
-        widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-    bar.start()
+    # bar = progressbar.ProgressBar(maxval=num_slots, \
+    #     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+    # bar.start()
     orig_stdout = sys.stdout
     # f = open(os.devnull, 'w')
     f = open(str(uid)+'/out-'+str(s)+'.txt', 'w')
@@ -193,6 +194,7 @@ for s in range(0,num_sim):
 
 
     a_avg_list = []
+    availabilities_list_per_slot = []
     # a_avg_list_squared = []
     num_slots_counter = 0
     aux = 0
@@ -214,7 +216,7 @@ for s in range(0,num_sim):
         failures_counter = 0
         attempts_counter = 0
         
-        bar.update(c+1)
+        # bar.update(c+1)
         slots.append(c)
         num_slots_counter += 1
         c += 1
@@ -290,6 +292,7 @@ for s in range(0,num_sim):
 
         a = np.average(a_per_zoi.values())
         a_list.append(a)
+        availabilities_list_per_slot.append(a)
 
         print("per zoi availability: ", a_per_zoi.values())
         print("this availability: " , a)
@@ -324,6 +327,7 @@ for s in range(0,num_sim):
     # Add the average of the availability averages in this simulation to the final list of availabilities (one point per simulation)
     avb_per_sim.append(np.average(a_avg_list))
     list_of_lists_avg_10.append(a_avg_list)
+    avb_per_sim_per_slot.append(availabilities_list_per_slot)
 
     # At the end of every simulation we need to close connections and add it to the list of connection durations
     for k in range(0,num_users):
@@ -347,16 +351,25 @@ for s in range(0,num_sim):
     ########################## End of printing in simulation ##############################
     sys.stdout = orig_stdout
     f.close()
-    bar.finish()
+    # bar.finish()
     t1 = time.time()
     print ("Total time running: %s minutes \n" % str((t1-t0)/60))
 
 ########################## End of simulations, print and dump relevant final info ##############################
 
 print("last availability: ", avb_per_sim)
+print("flight length: ", scenario.usr_list[0].flight_length)
+
 np.savetxt(str(uid)+'/availability_points.txt', avb_per_sim , fmt="%1.3f")
+
 outfile = open(str(uid)+'/list_of_averages.txt', 'w')
 for result in list_of_lists_avg_10:
+    outfile.writelines(str(result))
+    outfile.write('\n')
+outfile.close()
+
+outfile = open(str(uid)+'/availability_per_slot_per_sim.txt', 'w')
+for result in avb_per_sim_per_slot:
     outfile.writelines(str(result))
     outfile.write('\n')
 outfile.close()
