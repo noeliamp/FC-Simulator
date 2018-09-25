@@ -15,7 +15,7 @@ import uuid
 import os
 import base64
 import hashlib
-from shutil import copyfile
+from  shutil import copyfile
 
 t0 = time.time()
 uid = base64.urlsafe_b64encode(hashlib.md5(os.urandom(128)).digest())[:8]
@@ -53,7 +53,7 @@ num_content_per_zoi = data["num_content_per_zoi"]
 
 # different content size during simulations
 # content_size_list = [100,9310441.379,18620782.76,27931124.14,37241465.52,46551806.9,55862148.28,65172489.66,74482831.03,83793172.41,93103513.79,102413855.2,111724196.6,121034537.9,130344879.3,139655220.7,148965562.1,158275903.4,167586244.8,176896586.2,186206927.6,195517269,204827610.3,214137951.7,223448293.1,232758634.5,242068975.9,251379317.2,260689658.6,270000000]
-content_size_list = [1000,100000,1000000]
+content_size_list = [1000,100000,1000000,100000000,80000]
 
 seed_list = [15482669,15482681,15482683,15482711,15482729,15482941,15482947,15482977,15482993,15483023,15483029,15483067,15483077,15483079,15483089,15483101,15483103,15482743,15482771,15482773,15482783,15482807,15482809,15482827,15482851,15482861,15482893,15482911,15482917,15482923]
 uid = str(max_speed) + "-" + str(radius_of_tx) + "-" + str(radius_of_replication) + "-" + str(radius_of_persistence) + "-"+ str(uid) 
@@ -70,7 +70,9 @@ zoi_users_counter = OrderedDict()
 per_users_counter = OrderedDict()
 rep_users_counter = OrderedDict()
 
-content_size_index = 2
+content_size_index = 0
+
+copyfile('input.json', str(uid)+'/input.json') # Copy the corresponding input file into the folder
 ################## Loop per simulation
 for s in range(0,num_sim):
     # np.random.seed(seed_list[s])
@@ -85,7 +87,6 @@ for s in range(0,num_sim):
     f = open(str(uid)+'/out-'+str(s)+'.txt', 'w')
     sys.stdout = f      
 
-    copyfile('input.json', str(uid)+'/input.json') # Copy the corresponding input file into the folder
 
     usr_list = []        # list of users in the entire scenario
 
