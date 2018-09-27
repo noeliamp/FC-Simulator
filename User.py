@@ -52,7 +52,7 @@ class User:
         self.hand_shake_counter = 0
         self.prob = 0
         if self.scenario.flight_length_distribution == "uniform":
-            self.flight_length = np.random.randint(self.scenario.min_flight_length, self.scenario.max_flight_length)
+            self.flight_length = np.random.uniform(self.scenario.min_flight_length, self.scenario.max_flight_length)
         else:
             self.flight_length = np.inf
         self.vx = 0
@@ -93,9 +93,8 @@ class User:
                 self.zones[z] = "interest"
             if d > np.power(z.scenario.radius_of_persistence,2):
                 # We do not keep information about the zones where the node is out
-                if self.ongoing_conn == False and z in self.zones:
-                    del self.zones[z]
-                    self.deleteMessages(z)
+                # if self.ongoing_conn == False:
+                self.deleteMessages(z)
 
     def deleteMessages(self,z):
         # We remove the messages belonging to this zone in case the node was previously in the zone (the zone existed before)    
@@ -104,7 +103,8 @@ class User:
             if m.zoi == z:
                 size += m.size
                 self.messages_list.remove(m)
-                self.exchange_list.remove(m)
+                if m in self.exchange_list:
+                    self.exchange_list.remove(m)
         self.used_memory -= size
         self.exchange_size -= size
         # self.db_exchange = False what to do with this?

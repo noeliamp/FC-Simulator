@@ -358,7 +358,9 @@ for s in range(0,num_sim):
 ########################## End of simulations, print and dump relevant final info ##############################
 
 print("last availability: ", avb_per_sim)
-print("flight length: ", scenario.usr_list[0].flight_length)
+print("flight length: ", scenario.flight_length_distribution)
+print("flight : ", scenario.usr_list[0].flight_length)
+print("speed : ", scenario.usr_list[0].speed)
 
 np.savetxt(str(uid)+'/availability_points.txt', avb_per_sim , fmt="%1.3f")
 

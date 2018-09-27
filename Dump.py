@@ -17,12 +17,17 @@ class Dump:
     def userLastPosition(self):
         x = []
         y = []
+        z=[]
+        l = []
         ids = []
         zois = []
         for i in range(0,self.scenario.num_users):
             x.append(self.scenario.usr_list[i].x_list[-1])
             y.append(self.scenario.usr_list[i].y_list[-1])
-            print("User id: ", self.scenario.usr_list[i].id, "position x: ", self.scenario.usr_list[i].x_list[-1] , "position y: ", self.scenario.usr_list[i].y_list[-1])
+            z.append(len(self.scenario.usr_list[i].messages_list))
+            l.append(self.scenario.usr_list[i].zones.values())
+
+            print("User id: ", self.scenario.usr_list[i].id, "position x: ", self.scenario.usr_list[i].x_list[-1] , "position y: ", self.scenario.usr_list[i].y_list[-1], "zones: ",self.scenario.usr_list[i].zones.values())
 
         # print(x)
         # print(y)
@@ -30,11 +35,15 @@ class Dump:
         file.write(json.dumps(x))
         file.write(json.dumps("&"))
         file.write(json.dumps(y))
-        for z in self.scenario.zois_list:
+        file.write(json.dumps("&"))
+        file.write(json.dumps(z))
+        file.write(json.dumps("&"))
+        file.write(json.dumps(l))
+        for h in self.scenario.zois_list:
             file.write(json.dumps("&"))
-            file.write(json.dumps(z.x))
+            file.write(json.dumps(h.x))
             file.write(json.dumps("&"))
-            file.write(json.dumps(z.y))
+            file.write(json.dumps(h.y))
             file.write(json.dumps("&"))
             file.write(json.dumps(self.scenario.radius_of_interest))
             file.write(json.dumps("&"))

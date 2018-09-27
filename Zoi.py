@@ -6,8 +6,8 @@ class Zoi:
         print ("Creating new ZOI...")
         self.id = id
         self.scenario = scenario
-        self.x = posX
-        self.y = posY
+        self.x = 0
+        self.y = 0
         self.content_list = []
         self.displayZoi()
 
