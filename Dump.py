@@ -71,7 +71,7 @@ class Dump:
 
     ####### Connection duration list
 
-    def connectionDurationAndMore(self):
+    def connectionDurationAndMore(self,contacts_per_slot_per_user):
         connection_duration_list = []
         successes_list_A = []
         ex_list_A = []
@@ -98,6 +98,8 @@ class Dump:
         np.savetxt(str(self.uid)+'/successes-list-B-'+str(self.s)+'.txt', flat_list_suc_B , fmt="%i") 
         np.savetxt(str(self.uid)+'/exchange-list-B-'+str(self.s)+'.txt', flat_list_exc_B , fmt="%i") 
 
+        with open(str(self.uid)+'/contacts-per-slot-per-user-'+str(self.s)+'.json', 'w') as fp:
+            json.dump(contacts_per_slot_per_user, fp)
 
     ####### Availability per zoi per slot
 

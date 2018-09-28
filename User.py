@@ -68,6 +68,7 @@ class User:
         self.successes_list_B = []
         self.ex_list_print_A = []
         self.ex_list_print_B = []
+        self.contacts_per_slot = OrderedDict()
         self.calculateZones()
         self.displayUser()
 
@@ -192,7 +193,7 @@ class User:
         # Check the new point zone of the user
         self.calculateZones()
 
-    def userContact(self):
+    def userContact(self,c):
         # print ("My id is ", self.id, " And my zone is: ", self.zone, " Am I busy for this slot: ", self.busy)
         my_rep_zones = []
         my_inter_zones = []
@@ -202,6 +203,14 @@ class User:
             my_inter_zones.append(list(self.zones.keys())[list(self.zones.values()).index("interest")])
 
         my_rep_zones.extend(my_inter_zones)
+
+        # Include the neighbours found in this slot for contacts statistics
+        for user in self.scenario.usr_list:
+            if user.id != self.id:
+                pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
+                if pos_user < np.power(self.scenario.radius_of_tx,2):
+                    self.contacts_per_slot[c].append(user.id)
+
         # Check if the node is not BUSY already for this slot and if the it is in the areas where data exchange is allowed
         if self.busy is False and len(my_rep_zones)>0:
             self.neighbours_list = []
@@ -226,6 +235,7 @@ class User:
 
             # Suffle neighbours list to void connecting always to the same users
             np.random.shuffle(self.neighbours_list)
+           
             # Once we have the list of neighbours, first check if there is a previous connection ongoing and the peer is still inside my tx range
             # which is the same as been in the neighbours list since we checked the positions above
             if self.ongoing_conn == True and self.prev_peer in self.neighbours_list:

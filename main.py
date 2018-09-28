@@ -8,7 +8,7 @@ import json
 from collections import OrderedDict
 import sys, os
 import uuid
-# import progressbar
+import progressbar
 from time import sleep
 import time
 import uuid
@@ -70,6 +70,7 @@ rep_counter= OrderedDict()
 zoi_users_counter = OrderedDict()
 per_users_counter = OrderedDict()
 rep_users_counter = OrderedDict()
+contacts_per_slot_per_user= OrderedDict()
 
 content_size_index = 4
 
@@ -80,9 +81,9 @@ for s in range(0,num_sim):
     print("SIMULATION--> ", s)
     print("content size ", content_size_list[content_size_index])
     # progress bar
-    # bar = progressbar.ProgressBar(maxval=num_slots, \
-    #     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-    # bar.start()
+    bar = progressbar.ProgressBar(maxval=num_slots, \
+        widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+    bar.start()
     orig_stdout = sys.stdout
     # f = open(os.devnull, 'w')
     f = open(str(uid)+'/out-'+str(s)+'.txt', 'w')
@@ -216,7 +217,7 @@ for s in range(0,num_sim):
         failures_counter = 0
         attempts_counter = 0
         
-        # bar.update(c+1)
+        bar.update(c+1)
         slots.append(c)
         num_slots_counter += 1
         c += 1
@@ -237,7 +238,8 @@ for s in range(0,num_sim):
             scenario.usr_list[k].attempts_counter = 0
 
             # run users contact
-            scenario.usr_list[k].userContact()
+            scenario.usr_list[k].contacts_per_slot[c] = []
+            scenario.usr_list[k].userContact(c)
 
             failures_counter += scenario.usr_list[k].failures_counter
             attempts_counter += scenario.usr_list[k].attempts_counter
@@ -339,19 +341,24 @@ for s in range(0,num_sim):
             scenario.usr_list[k].ex_list_print_B.append(len(scenario.usr_list[k].prev_peer.exchange_list))
             scenario.usr_list[k].ongoing_conn = False
             scenario.usr_list[k].prev_peer.ongoing_conn = False
+        
+        
+    for u in scenario.usr_list:
+        contacts_per_slot_per_user[u.id] = u.contacts_per_slot
+
 
 
     ###################### Functions to dump data per simulation #########################
     dump = Dump(scenario,uid,s)
     dump.userLastPosition()
     dump.statisticsList(slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts)
-    dump.connectionDurationAndMore()
+    dump.connectionDurationAndMore(contacts_per_slot_per_user)
     dump.availabilityPerZoi(availability_per_zoi.values())
     
     ########################## End of printing in simulation ##############################
     sys.stdout = orig_stdout
     f.close()
-    # bar.finish()
+    bar.finish()
     t1 = time.time()
     print ("Total time running: %s minutes \n" % str((t1-t0)/60))
 
