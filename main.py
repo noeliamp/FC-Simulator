@@ -8,7 +8,7 @@ import json
 from collections import OrderedDict
 import sys, os
 import uuid
-# import progressbar
+import progressbar
 from time import sleep
 import time
 import uuid
@@ -81,9 +81,9 @@ for s in range(0,num_sim):
     print("SIMULATION--> ", s)
     print("content size ", content_size_list[content_size_index])
     # progress bar
-    # bar = progressbar.ProgressBar(maxval=num_slots, \
-    #     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-    # bar.start()
+    bar = progressbar.ProgressBar(maxval=num_slots, \
+        widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+    bar.start()
     orig_stdout = sys.stdout
     # f = open(os.devnull, 'w')
     f = open(str(uid)+'/out-'+str(s)+'.txt', 'w')
@@ -217,7 +217,7 @@ for s in range(0,num_sim):
         failures_counter = 0
         attempts_counter = 0
         
-        # bar.update(c+1)
+        bar.update(c+1)
         slots.append(c)
         num_slots_counter += 1
         c += 1
@@ -358,7 +358,7 @@ for s in range(0,num_sim):
     ########################## End of printing in simulation ##############################
     sys.stdout = orig_stdout
     f.close()
-    # bar.finish()
+    bar.finish()
     t1 = time.time()
     print ("Total time running: %s minutes \n" % str((t1-t0)/60))
 

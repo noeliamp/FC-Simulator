@@ -86,13 +86,13 @@ class User:
         self.zones = OrderedDict()
         for z in self.scenario.zois_list:
             d = np.power(self.x_list[-1]- z.x,2) + np.power(self.y_list[-1]- z.y,2)
-            if d < np.power(z.scenario.radius_of_persistence,2):
+            if d < z.scenario.square_radius_of_persistence:
                 self.zones[z] = "persistence"
-            if d < np.power(z.scenario.radius_of_replication,2):
+            if d < z.scenario.square_radius_of_replication:
                 self.zones[z] = "replication"
-            if d < np.power(z.scenario.radius_of_interest,2):
+            if d < z.scenario.square_radius_of_interest:
                 self.zones[z] = "interest"
-            if d > np.power(z.scenario.radius_of_persistence,2):
+            if d > z.scenario.square_radius_of_persistence:
                 # We do not keep information about the zones where the node is out
                 # if self.ongoing_conn == False:
                 self.deleteMessages(z)
@@ -182,6 +182,9 @@ class User:
                 # print("Next point: ", x, y)   
                 self.x_list.append(x)
                 self.y_list.append(y)
+
+                self.x_list[-1]=x
+                self.y_list[-1]=y
                 
 
             if self.m > self.flight_length:
@@ -208,7 +211,7 @@ class User:
         for user in self.scenario.usr_list:
             if user.id != self.id:
                 pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
-                if pos_user < np.power(self.scenario.radius_of_tx,2):
+                if pos_user < self.scenario.square_radius_of_tx:
                     self.contacts_per_slot[c].append(user.id)
 
         # Check if the node is not BUSY already for this slot and if the it is in the areas where data exchange is allowed
@@ -218,7 +221,7 @@ class User:
             for user in self.scenario.usr_list:
                 if user.id != self.id:
                     pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
-                    if pos_user < np.power(self.scenario.radius_of_tx,2):
+                    if pos_user < self.scenario.square_radius_of_tx:
                         # Check if the neighbour is in the areas where data exchange is allowed
                         user_rep_zones = []
                         user_inter_zones = []
