@@ -62,7 +62,6 @@ class User:
         self.failures_counter = 0
         self.attempts_counter = 0
         self.connection_duration = 0
-        self.connection_duration_list = []
         self.successes_list_A = []
         self.suc = 0
         self.successes_list_B = []
@@ -255,9 +254,14 @@ class User:
                 # if my prev peer is not in my communication range we don't exchange data anymore
                 if self.ongoing_conn == True and self.prev_peer not in self.neighbours_list:
                     # print("I have a prev peer and it is far. ", self.prev_peer.id, self.prev_peer.zone)
-                    self.connection_duration_list.append(self.connection_duration)
+                    # self.connection_duration_list.append(self.connection_duration)
+                    if self.connection_duration not in self.scenario.connection_duration_list.keys():
+                        self.scenario.connection_duration_list[self.connection_duration] = 1
+                    else:
+                        self.scenario.connection_duration_list[self.connection_duration] +=1
                     self.successes_list_A.append(self.suc)
                     self.successes_list_B.append(self.prev_peer.suc)
+                    self.scenario.succeses_per_slot.append(self.suc+self.prev_peer.suc)
 
                     self.ex_list_print_A.append(len(self.exchange_list))
                     self.ex_list_print_B.append(len(self.prev_peer.exchange_list))
@@ -303,7 +307,8 @@ class User:
                     self.attempts_counter += 1
 
                     # probability to exchange data with this neighbour
-                    self.prob = np.random.uniform()
+                    # self.prob = np.random.uniform()
+                    self.prob = 1
                     # hand shake needs to be changed to randint variable
                     # self.hand_shake = 80
                     # neighbour.hand_shake = 80
@@ -479,9 +484,16 @@ class User:
         # If everything has been exchanged, reset parameters
         if self.exchange_counter == self.exchange_size and neighbour.exchange_counter == neighbour.exchange_size:
             # print("ENTRO AQUI", self.exchange_counter, self.exchange_size,neighbour.exchange_counter, neighbour.exchange_size, self.used_memory, self.used_memory)
-            self.connection_duration_list.append(self.connection_duration)
+            # self.connection_duration_list.append(self.connection_duration)
+            if self.connection_duration not in self.scenario.connection_duration_list.keys():
+                self.scenario.connection_duration_list[self.connection_duration] = 1
+            else:
+                self.scenario.connection_duration_list[self.connection_duration] +=1
+
             self.successes_list_A.append(self.suc)
             self.successes_list_B.append(neighbour.suc)
+            self.scenario.succeses_per_slot.append(self.suc+neighbour.suc)
+
 
             self.ex_list_print_A.append(len(self.exchange_list))
             self.ex_list_print_B.append(len(neighbour.exchange_list))
