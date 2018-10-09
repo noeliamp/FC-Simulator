@@ -36,7 +36,7 @@ class Scenario:
         self.hand_shake = hand_shake
         self.used_mbs_per_slot = []
         self.zois_list = []
-        self.succeses_per_slot = []
+        self.successes_per_slot = []
         self.num_zois = num_zois
         self.connection_duration_list = OrderedDict()
         for i in range(0,self.num_zois):

@@ -72,7 +72,7 @@ per_users_counter = OrderedDict()
 rep_users_counter = OrderedDict()
 contacts_per_slot_per_user= OrderedDict()
 
-content_size_index = 2
+content_size_index = 4
 
 copyfile('input.json', str(uid)+'/input.json') # Copy the corresponding input file into the folder
 ################## Loop per simulation
@@ -340,10 +340,11 @@ for s in range(0,num_sim):
                 scenario.connection_duration_list[scenario.usr_list[k].connection_duration] +=1
 
             # scenario.usr_list[k].connection_duration_list.append(scenario.usr_list[k].connection_duration)
-            scenario.usr_list[k].successes_list_A.append(scenario.usr_list[k].suc)
-            scenario.usr_list[k].successes_list_B.append(scenario.usr_list[k].prev_peer.suc)
-            scenario.usr_list[k].ex_list_print_A.append(len(scenario.usr_list[k].exchange_list))
-            scenario.usr_list[k].ex_list_print_B.append(len(scenario.usr_list[k].prev_peer.exchange_list))
+            # scenario.usr_list[k].successes_list_A.append(scenario.usr_list[k].suc)
+            # scenario.usr_list[k].successes_list_B.append(scenario.usr_list[k].prev_peer.suc)
+            # scenario.usr_list[k].ex_list_print_A.append(len(scenario.usr_list[k].exchange_list))
+            # scenario.usr_list[k].ex_list_print_B.append(len(scenario.usr_list[k].prev_peer.exchange_list))
+            scenario.successes_per_slot(scenario.usr_list[k].suc+scenario.usr_list[k].prev_peer.suc)
             scenario.usr_list[k].ongoing_conn = False
             scenario.usr_list[k].prev_peer.ongoing_conn = False
         

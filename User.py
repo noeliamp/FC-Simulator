@@ -62,11 +62,11 @@ class User:
         self.failures_counter = 0
         self.attempts_counter = 0
         self.connection_duration = 0
-        self.successes_list_A = []
+        # self.successes_list_A = []
         self.suc = 0
-        self.successes_list_B = []
-        self.ex_list_print_A = []
-        self.ex_list_print_B = []
+        # self.successes_list_B = []
+        # self.ex_list_print_A = [] # Commented to save memory
+        # self.ex_list_print_B = []
         self.contacts_per_slot = OrderedDict()
         self.calculateZones()
         self.displayUser()
@@ -259,17 +259,19 @@ class User:
                         self.scenario.connection_duration_list[self.connection_duration] = 1
                     else:
                         self.scenario.connection_duration_list[self.connection_duration] +=1
-                    self.successes_list_A.append(self.suc)
-                    self.successes_list_B.append(self.prev_peer.suc)
-                    self.scenario.succeses_per_slot.append(self.suc+self.prev_peer.suc)
+                    # self.successes_list_A.append(self.suc)
+                    # self.successes_list_B.append(self.prev_peer.suc)
+                    self.scenario.successes_per_slot.append(self.suc+self.prev_peer.suc)
+                    print("infoooooooooooooo---> ", self.suc, self.prev_peer.suc)
 
-                    self.ex_list_print_A.append(len(self.exchange_list))
-                    self.ex_list_print_B.append(len(self.prev_peer.exchange_list))
+                    # self.ex_list_print_A.append(len(self.exchange_list)) # commented to save memory
+                    # self.ex_list_print_B.append(len(self.prev_peer.exchange_list))
 
                     # self.prev_peer.connection_duration_list.append(self.prev_peer.connection_duration)
                     self.connection_duration = 0
                     self.prev_peer.connection_duration = 0
                     self.suc = 0
+                    print("RESTANDO self --> ", self.suc)
                     self.prev_peer.suc = 0
                     # If in previous slot we have exchanged bits from next messages we have to remove them from the used memory because we did't manage to
                     # exchange the whole message so we loose it. Basically --> only reset used_memory because the msg has not been added to the list.
@@ -456,6 +458,7 @@ class User:
                             # print("Adding message to neighbour DB: ", self.exchange_list[i].size)
                             neighbour.messages_list.append(self.exchange_list[i])
                             self.suc += 1
+                            print("SUMANDO self --> ", self.suc)
                         
             if len(neighbour.exchange_list) > 0:
                 for j in range(0,len(neighbour.counter_list)):
@@ -465,6 +468,8 @@ class User:
                             # print("Adding message to my DB: ", neighbour.exchange_list[j].size)
                             self.messages_list.append(neighbour.exchange_list[j])
                             neighbour.suc += 1
+                            print("SUMANDO nei --> ", neighbour.suc)
+
 
         # After exchanging both peers part of the db, set back the booleans for next slot
         self.db_exchange = False
@@ -490,18 +495,20 @@ class User:
             else:
                 self.scenario.connection_duration_list[self.connection_duration] +=1
 
-            self.successes_list_A.append(self.suc)
-            self.successes_list_B.append(neighbour.suc)
-            self.scenario.succeses_per_slot.append(self.suc+neighbour.suc)
+            # self.successes_list_A.append(self.suc)
+            # self.successes_list_B.append(neighbour.suc)
+            self.scenario.successes_per_slot.append(self.suc+neighbour.suc)
+            print("infoooooooooooooo---> ", self.suc, neighbour.suc)
 
 
-            self.ex_list_print_A.append(len(self.exchange_list))
-            self.ex_list_print_B.append(len(neighbour.exchange_list))
+            # self.ex_list_print_A.append(len(self.exchange_list)) #commented to save memory
+            # self.ex_list_print_B.append(len(neighbour.exchange_list))
 
             # neighbour.connection_duration_list.append(neighbour.connection_duration)
             self.connection_duration = 0
             neighbour.connection_duration = 0
             self.suc = 0
+            print("RESTANDO self --> ", self.suc)
             neighbour.suc = 0
             self.ongoing_conn = False
             neighbour.ongoing_conn = False

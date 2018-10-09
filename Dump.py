@@ -72,31 +72,31 @@ class Dump:
     ####### Connection duration list
 
     def connectionDurationAndMore(self,contacts_per_slot_per_user):
-        successes_list_A = []
-        ex_list_A = []
-        successes_list_B = []
-        ex_list_B = []
+        # successes_list_A = []
+        # ex_list_A = []
+        # successes_list_B = []
+        # ex_list_B = []
 
-        for k in range(0,self.scenario.num_users):
-            # connection_duration_list.append(self.scenario.usr_list[k].connection_duration_list)
-            successes_list_A.append(self.scenario.usr_list[k].successes_list_A)
-            ex_list_A.append(self.scenario.usr_list[k].ex_list_print_A)
-            successes_list_B.append(self.scenario.usr_list[k].successes_list_B)
-            ex_list_B.append(self.scenario.usr_list[k].ex_list_print_B)
+        # for k in range(0,self.scenario.num_users):
+        #     # connection_duration_list.append(self.scenario.usr_list[k].connection_duration_list)
+        #     successes_list_A.append(self.scenario.usr_list[k].successes_list_A)
+        #     ex_list_A.append(self.scenario.usr_list[k].ex_list_print_A) #comment to save memory
+        #     successes_list_B.append(self.scenario.usr_list[k].successes_list_B)
+        #     ex_list_B.append(self.scenario.usr_list[k].ex_list_print_B)
 
 
-        # flat_list_con = [item for sublist in connection_duration_list for item in sublist]
-        flat_list_suc_A = [item for sublist in successes_list_A for item in sublist]
-        flat_list_exc_A = [item for sublist in ex_list_A for item in sublist]
-        flat_list_suc_B = [item for sublist in successes_list_B for item in sublist]
-        flat_list_exc_B = [item for sublist in ex_list_B for item in sublist]
-        flat_list_suc_zoi = [item for sublist in ex_list_B for item in self.scenario.successes_per_slot]
+        # # flat_list_con = [item for sublist in connection_duration_list for item in sublist]
+        # flat_list_suc_A = [item for sublist in successes_list_A for item in sublist]
+        # flat_list_exc_A = [item for sublist in ex_list_A for item in sublist]
+        # flat_list_suc_B = [item for sublist in successes_list_B for item in sublist]
+        # flat_list_exc_B = [item for sublist in ex_list_B for item in sublist]
+        flat_list_suc_zoi = self.scenario.successes_per_slot
 
         # np.savetxt(str(self.uid)+'/connection-duration-list-'+str(self.s)+'.txt', flat_list_con , fmt="%i") 
-        np.savetxt(str(self.uid)+'/successes-list-A-'+str(self.s)+'.txt', flat_list_suc_A , fmt="%i") 
-        np.savetxt(str(self.uid)+'/exchange-list-A-'+str(self.s)+'.txt', flat_list_exc_A , fmt="%i") 
-        np.savetxt(str(self.uid)+'/successes-list-B-'+str(self.s)+'.txt', flat_list_suc_B , fmt="%i") 
-        np.savetxt(str(self.uid)+'/exchange-list-B-'+str(self.s)+'.txt', flat_list_exc_B , fmt="%i") 
+        # np.savetxt(str(self.uid)+'/successes-list-A-'+str(self.s)+'.txt', flat_list_suc_A , fmt="%i") 
+        # np.savetxt(str(self.uid)+'/exchange-list-A-'+str(self.s)+'.txt', flat_list_exc_A , fmt="%i") 
+        # np.savetxt(str(self.uid)+'/successes-list-B-'+str(self.s)+'.txt', flat_list_suc_B , fmt="%i") 
+        # np.savetxt(str(self.uid)+'/exchange-list-B-'+str(self.s)+'.txt', flat_list_exc_B , fmt="%i") 
         np.savetxt(str(self.uid)+'/zoi-successes-'+str(self.s)+'.txt', flat_list_suc_zoi , fmt="%i") 
 
 
