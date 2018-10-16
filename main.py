@@ -72,7 +72,7 @@ per_users_counter = OrderedDict()
 rep_users_counter = OrderedDict()
 contacts_per_slot_per_user= OrderedDict()
 
-content_size_index = 4
+content_size_index = 2
 
 copyfile('input.json', str(uid)+'/input.json') # Copy the corresponding input file into the folder
 ################## Loop per simulation
@@ -186,25 +186,17 @@ for s in range(0,num_sim):
 
         a_per_zoi[z] = av
         availability_per_zoi[z] = []
-
-
+        
     a = np.average(a_per_zoi.values())
 
     print("per zoi availability: ", a_per_zoi.values())
     print("this availability: " , a)
 
-
-    a_avg_list = []
     availabilities_list_per_slot = []
-    # a_avg_list_squared = []
-    num_slots_counter = 0
-    aux = 0
-    th=0.4
     c = 0
     
     ################## Loop per slot into a simulation
     while c < num_slots and a > 0:
-    # aux < th:
         for z in scenario.zois_list:
             zoi_counter[z] = 0
             per_counter[z] = 0
@@ -219,7 +211,6 @@ for s in range(0,num_sim):
         
         bar.update(c+1)
         slots.append(c)
-        num_slots_counter += 1
         c += 1
 
         # shuffle users lists
@@ -283,7 +274,7 @@ for s in range(0,num_sim):
         print("rep_users_counter ",rep_users_counter.values(),rep_counter.values())
         print("per_users_counter ",per_users_counter.values(),per_counter.values())
 
-        # we add the current slot availability to the list a_list
+        # we add the current slot availability to the list
         for z in scenario.zois_list:
             if (zoi_users_counter[z] + rep_users_counter[z]) == 0:
                 av = 0
@@ -293,42 +284,12 @@ for s in range(0,num_sim):
             availability_per_zoi[z].append(av)
 
         a = np.average(a_per_zoi.values())
-        a_list.append(a)
         availabilities_list_per_slot.append(a)
 
         print("per zoi availability: ", a_per_zoi.values())
         print("this availability: " , a)
 
-        if num_slots_counter == 10:
-            # Once we reach the desired number of slots per window, we compute the average of the availabilities for that window
-            avg = np.average(a_list)
-            print("a_list: ", a_list)
-            a_avg_list.append(avg)
-            print("avg: ", avg)
-            # compute the standard deviation up to that window
-
-            # a_avg_list_squared.append(np.power(avg,2))
-            # num = sum(a_avg_list_squared)-(np.power(sum(a_avg_list),2))/len(a_avg_list)
-            # den = len(a_avg_list)-1   
-            # if den != 0:
-            #     sd = np.sqrt(num/den)
-            # else: 
-            #     sd = 0
-
-            # # compute the confidence interval up to this window
-            # min = a - ((1.96 * sd)/np.sqrt(len(a_avg_list)))
-            # max = a + ((1.96 * sd)/np.sqrt(len(a_avg_list)))
-            # CI = max - min
-            # mi = sum(a_avg_list)/len(a_avg_list)
-            # # variable to check if next point is smaller than a threshold (comparison in the while loop)
-            # aux = CI/mi
-
-            num_slots_counter = 0
-            a_list = []
-    
-    # Add the average of the availability averages in this simulation to the final list of availabilities (one point per simulation)
-    avb_per_sim.append(np.average(a_avg_list))
-    list_of_lists_avg_10.append(a_avg_list)
+    # Add the availabilities in this simulation to the final list of availabilities
     avb_per_sim_per_slot.append(availabilities_list_per_slot)
 
     # At the end of every simulation we need to close connections and add it to the list of connection durations
@@ -339,20 +300,12 @@ for s in range(0,num_sim):
             else:
                 scenario.connection_duration_list[scenario.usr_list[k].connection_duration] +=1
 
-            # scenario.usr_list[k].connection_duration_list.append(scenario.usr_list[k].connection_duration)
-            # scenario.usr_list[k].successes_list_A.append(scenario.usr_list[k].suc)
-            # scenario.usr_list[k].successes_list_B.append(scenario.usr_list[k].prev_peer.suc)
-            # scenario.usr_list[k].ex_list_print_A.append(len(scenario.usr_list[k].exchange_list))
-            # scenario.usr_list[k].ex_list_print_B.append(len(scenario.usr_list[k].prev_peer.exchange_list))
-            scenario.successes_per_slot(scenario.usr_list[k].suc+scenario.usr_list[k].prev_peer.suc)
             scenario.usr_list[k].ongoing_conn = False
             scenario.usr_list[k].prev_peer.ongoing_conn = False
-        
-        
+            print("CONNEC DURATION out--> ", scenario.usr_list[k].connection_duration)
+     
     for u in scenario.usr_list:
         contacts_per_slot_per_user[u.id] = u.contacts_per_slot
-
-
 
     ###################### Functions to dump data per simulation #########################
     dump = Dump(scenario,uid,s)
@@ -360,7 +313,9 @@ for s in range(0,num_sim):
     dump.statisticsList(slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts)
     dump.connectionDurationAndMore(contacts_per_slot_per_user)
     dump.availabilityPerZoi(availability_per_zoi.values())
-    
+    dump.availabilityPerSimulation(np.average(availabilities_list_per_slot))
+    dump.listOfAveragesPerSlot(availabilities_list_per_slot)
+    dump.con0exchange()
     ########################## End of printing in simulation ##############################
     sys.stdout = orig_stdout
     f.close()
@@ -368,20 +323,15 @@ for s in range(0,num_sim):
     t1 = time.time()
     print ("Total time running: %s minutes \n" % str((t1-t0)/60))
 
-########################## End of simulations, print and dump relevant final info ##############################
+########################## End of simulations, print and dump relevant final info (old version to compare) ##############################
 
 print("last availability: ", avb_per_sim)
 print("flight length: ", scenario.flight_length_distribution)
 print("flight : ", scenario.usr_list[0].flight_length)
 print("speed : ", scenario.usr_list[0].speed)
+print("connections with 0 exchange: ", scenario.count_0_exchange_conn)
 
 np.savetxt(str(uid)+'/availability_points.txt', avb_per_sim , fmt="%1.3f")
-
-outfile = open(str(uid)+'/list_of_averages.txt', 'w')
-for result in list_of_lists_avg_10:
-    outfile.writelines(str(result))
-    outfile.write('\n')
-outfile.close()
 
 outfile = open(str(uid)+'/availability_per_slot_per_sim.txt', 'w')
 for result in avb_per_sim_per_slot:

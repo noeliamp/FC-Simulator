@@ -72,34 +72,6 @@ class Dump:
     ####### Connection duration list
 
     def connectionDurationAndMore(self,contacts_per_slot_per_user):
-        # successes_list_A = []
-        # ex_list_A = []
-        # successes_list_B = []
-        # ex_list_B = []
-
-        # for k in range(0,self.scenario.num_users):
-        #     # connection_duration_list.append(self.scenario.usr_list[k].connection_duration_list)
-        #     successes_list_A.append(self.scenario.usr_list[k].successes_list_A)
-        #     ex_list_A.append(self.scenario.usr_list[k].ex_list_print_A) #comment to save memory
-        #     successes_list_B.append(self.scenario.usr_list[k].successes_list_B)
-        #     ex_list_B.append(self.scenario.usr_list[k].ex_list_print_B)
-
-
-        # # flat_list_con = [item for sublist in connection_duration_list for item in sublist]
-        # flat_list_suc_A = [item for sublist in successes_list_A for item in sublist]
-        # flat_list_exc_A = [item for sublist in ex_list_A for item in sublist]
-        # flat_list_suc_B = [item for sublist in successes_list_B for item in sublist]
-        # flat_list_exc_B = [item for sublist in ex_list_B for item in sublist]
-        flat_list_suc_zoi = self.scenario.successes_per_slot
-
-        # np.savetxt(str(self.uid)+'/connection-duration-list-'+str(self.s)+'.txt', flat_list_con , fmt="%i") 
-        # np.savetxt(str(self.uid)+'/successes-list-A-'+str(self.s)+'.txt', flat_list_suc_A , fmt="%i") 
-        # np.savetxt(str(self.uid)+'/exchange-list-A-'+str(self.s)+'.txt', flat_list_exc_A , fmt="%i") 
-        # np.savetxt(str(self.uid)+'/successes-list-B-'+str(self.s)+'.txt', flat_list_suc_B , fmt="%i") 
-        # np.savetxt(str(self.uid)+'/exchange-list-B-'+str(self.s)+'.txt', flat_list_exc_B , fmt="%i") 
-        np.savetxt(str(self.uid)+'/zoi-successes-'+str(self.s)+'.txt', flat_list_suc_zoi , fmt="%i") 
-
-
         with open(str(self.uid)+'/contacts-per-slot-per-user-'+str(self.s)+'.json', 'w') as fp:
             json.dump(contacts_per_slot_per_user, fp)
 
@@ -112,3 +84,27 @@ class Dump:
         f = open(str(self.uid)+'/availability-per-zoi-'+str(self.s)+'.txt',"w")
         f.write(str(availability_per_zoi))
         f.close()
+
+    ####### Availability final point per simulation
+
+    def availabilityPerSimulation(self,printa):
+        f = open(str(self.uid)+'/availability_points-'+str(self.s)+'.txt',"w")
+        f.write(str(printa))
+        f.close()
+
+    ####### list of availabilities per slot per simulation
+
+    def listOfAveragesPerSlot(self,availabilities_list_per_slot):
+        outfile = open(str(self.uid)+'/availability_per_slot_per_sim-'+str(self.s)+'.txt', 'w')
+        for result in availabilities_list_per_slot:
+            outfile.writelines(str(result))
+            outfile.write('\n')
+        outfile.close()
+
+    ########### number of connections that started but didn't finish. With the same number of slots as hand shake + 1 slot to check 
+    # that they don't have anything to exchange
+    def con0exchange(self):
+        f = open(str(self.uid)+'/count-0-exchange-conn-'+str(self.s)+'.txt',"w")
+        f.write(str(self.scenario.count_0_exchange_conn))
+        f.close()
+        
