@@ -60,7 +60,7 @@ uid = str(max_speed) + "-" + str(radius_of_tx) + "-" + str(radius_of_replication
 os.mkdir(uid)
 print(uid)
 
-avb_per_sim = []
+# avb_per_sim = []
 list_of_lists_avg_10 = []
 avb_per_sim_per_slot= []
 
@@ -72,7 +72,7 @@ per_users_counter = OrderedDict()
 rep_users_counter = OrderedDict()
 contacts_per_slot_per_user= OrderedDict()
 
-content_size_index = 2
+content_size_index = 4
 
 copyfile('input.json', str(uid)+'/input.json') # Copy the corresponding input file into the folder
 ################## Loop per simulation
@@ -186,7 +186,7 @@ for s in range(0,num_sim):
 
         a_per_zoi[z] = av
         availability_per_zoi[z] = []
-        
+
     a = np.average(a_per_zoi.values())
 
     print("per zoi availability: ", a_per_zoi.values())
@@ -325,16 +325,16 @@ for s in range(0,num_sim):
 
 ########################## End of simulations, print and dump relevant final info (old version to compare) ##############################
 
-print("last availability: ", avb_per_sim)
-print("flight length: ", scenario.flight_length_distribution)
-print("flight : ", scenario.usr_list[0].flight_length)
-print("speed : ", scenario.usr_list[0].speed)
-print("connections with 0 exchange: ", scenario.count_0_exchange_conn)
+# print("last availability: ", avb_per_sim)
+# print("flight length: ", scenario.flight_length_distribution)
+# print("flight : ", scenario.usr_list[0].flight_length)
+# print("speed : ", scenario.usr_list[0].speed)
+# print("connections with 0 exchange: ", scenario.count_0_exchange_conn)
 
-np.savetxt(str(uid)+'/availability_points.txt', avb_per_sim , fmt="%1.3f")
+# np.savetxt(str(uid)+'/availability_points.txt', avb_per_sim , fmt="%1.3f")
 
-outfile = open(str(uid)+'/availability_per_slot_per_sim.txt', 'w')
-for result in avb_per_sim_per_slot:
-    outfile.writelines(str(result))
-    outfile.write('\n')
-outfile.close()
+# outfile = open(str(uid)+'/availability_per_slot_per_sim.txt', 'w')
+# for result in avb_per_sim_per_slot:
+#     outfile.writelines(str(result))
+#     outfile.write('\n')
+# outfile.close()
