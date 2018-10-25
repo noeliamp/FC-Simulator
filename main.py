@@ -50,6 +50,7 @@ flight_length_distribution = data["flight_length_distribution"]
 hand_shake = data["hand_shake"]
 window_size = data["window_size"]
 num_content_per_zoi = data["num_content_per_zoi"]
+seed = data["seed"]
 
 # different content size during simulations
 # content_size_list = [100,9310441.379,18620782.76,27931124.14,37241465.52,46551806.9,55862148.28,65172489.66,74482831.03,83793172.41,93103513.79,102413855.2,111724196.6,121034537.9,130344879.3,139655220.7,148965562.1,158275903.4,167586244.8,176896586.2,186206927.6,195517269,204827610.3,214137951.7,223448293.1,232758634.5,242068975.9,251379317.2,260689658.6,270000000]
@@ -77,7 +78,8 @@ content_size_index = 4
 copyfile('input.json', str(uid)+'/input.json') # Copy the corresponding input file into the folder
 ################## Loop per simulation
 for s in range(0,num_sim):
-    # np.random.seed(seed_list[s])
+    seed = int(seed)
+    np.random.seed(seed_list[seed])
     print("SIMULATION--> ", s)
     print("content size ", content_size_list[content_size_index])
     # progress bar

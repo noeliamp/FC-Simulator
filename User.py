@@ -356,6 +356,17 @@ class User:
                         # Second, exchange the data with peer!!
                         print("My exchange db size --> ", self.exchange_size, "Counter list", len(self.counter_list))
                         print("Neighbour exchange db size --> ", neighbour.exchange_size, "Counter list", len(neighbour.counter_list))
+                        # Count in advance if the connection is going to be useful or not, it means if they have something to exchange.
+                        #In case we have nothing to exchange we use the last slot for the checking
+                        if self.exchange_size == 0 and neighbour.exchange_size == 0:
+                            print("NOTHING TO EXCHANGE")
+                            self.hand_shake = self.hand_shake - 1
+                            neighbour.hand_shake = neighbour.hand_shake -1
+                            self.scenario.count_non_useful +=1
+                        else:
+                            print("THINGS TO EXCHANGE")
+                            self.scenario.count_useful +=1
+
                         self.exchangeData(neighbour)
                     if self.prob <= 0.5:
                         self.failures_counter =  self.failures_counter + 1
@@ -380,6 +391,7 @@ class User:
             self.prev_peer.ongoing_conn = True
             self.prev_peer.prev_peer = self
             print(self.busy, "hand shake not entry: ",self.hand_shake_counter, "neighbour size --> ", neighbour.exchange_size, self.exchange_size, neighbour.exchange_counter, self.exchange_counter)
+            
         else:
             print(self.busy, "hand shake entry: ",self.hand_shake_counter, "neighbour size --> ", neighbour.exchange_size, self.exchange_size, neighbour.exchange_counter, self.exchange_counter)
             if self.exchange_size == 0 and neighbour.exchange_size == 0:

@@ -104,7 +104,9 @@ class Dump:
     ########### number of connections that started but didn't finish. With the same number of slots as hand shake + 1 slot to check 
     # that they don't have anything to exchange
     def con0exchange(self):
-        f = open(str(self.uid)+'/count-0-exchange-conn-'+str(self.s)+'.txt',"w")
-        f.write(str(self.scenario.count_0_exchange_conn))
+        f = open(str(self.uid)+'/counters-'+str(self.s)+'.txt',"w")
+        f.write(str(self.scenario.count_0_exchange_conn)+"\n")
+        f.write(str(self.scenario.count_non_useful)+"\n")
+        f.write(str(self.scenario.count_useful)+"\n")
         f.close()
         
