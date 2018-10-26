@@ -170,7 +170,6 @@ for s in range(0,num_sim):
     rep_users = []
     per_users = []
     out_users = []
-    failures = []
     attempts = []
     a_list = []
     a_per_zoi = OrderedDict()
@@ -207,10 +206,6 @@ for s in range(0,num_sim):
             per_users_counter[z] = 0
             rep_users_counter[z] = 0
 
-        CI = 0
-        failures_counter = 0
-        attempts_counter = 0
-        
         bar.update(c+1)
         slots.append(c)
         c += 1
@@ -225,18 +220,14 @@ for s in range(0,num_sim):
             scenario.usr_list[j].busy = False
             scenario.usr_list[j].randomDirection()
 
-        # Run contacts for every slot after mobility. Attempts and failures are set to 0 at the beggining of every slot.   
+        # Run contacts for every slot after mobility.
         for k in range(0,num_users):
-            scenario.usr_list[k].failures_counter = 0
-            scenario.usr_list[k].attempts_counter = 0
-
             # run users contact
+            scenario.usr_list[k].hand_shake = hand_shake/delta
             scenario.usr_list[k].contacts_per_slot[c] = []
             scenario.usr_list[k].userContact(c)
-
-            failures_counter += scenario.usr_list[k].failures_counter
-            attempts_counter += scenario.usr_list[k].attempts_counter
-     
+        
+        attempts.append(scenario.attempts)
 
         # After moving the node and exchanging content, check to which zone it belongs to increase the right counter
         for j in range(0,num_users):
@@ -269,8 +260,6 @@ for s in range(0,num_sim):
         zoi_users.append(zoi_users_counter[z])
         rep_users.append(rep_users_counter[z])
         per_users.append(per_users_counter[z])
-        failures.append(failures_counter)
-        attempts.append(attempts_counter)
 
         print("zoi_users_counter ",zoi_users_counter.values(),zoi_counter.values())
         print("rep_users_counter ",rep_users_counter.values(),rep_counter.values())
@@ -312,7 +301,7 @@ for s in range(0,num_sim):
     ###################### Functions to dump data per simulation #########################
     dump = Dump(scenario,uid,s)
     dump.userLastPosition()
-    dump.statisticsList(slots, zoi_users, zoi, rep_users, rep, per_users, per,failures, attempts)
+    dump.statisticsList(slots, zoi_users, zoi, rep_users, rep, per_users, per,attempts)
     dump.connectionDurationAndMore(contacts_per_slot_per_user)
     dump.availabilityPerZoi(availability_per_zoi.values())
     dump.availabilityPerSimulation(np.average(availabilities_list_per_slot))

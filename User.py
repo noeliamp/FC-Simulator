@@ -59,8 +59,6 @@ class User:
         self.vy = 0
         self.x_origin = 0
         self.y_origin = 0
-        self.failures_counter = 0
-        self.attempts_counter = 0
         self.connection_duration = 0
         self.contacts_per_slot = OrderedDict()
         self.calculateZones()
@@ -242,6 +240,13 @@ class User:
                 # keep exchanging
                 self.db_exchange = False
                 self.prev_peer.db_exchange = False
+                if self.exchange_size == 0 and self.prev_peer.exchange_size == 0:
+                    self.hand_shake = self.hand_shake - 1
+                    self.prev_peer.hand_shake = self.prev_peer.hand_shake-1
+                    print("NOTHING TO EXCHANGE already loop", self.hand_shake, self.hand_shake_counter)
+                else:
+                    print("THINGS TO EXCHANGE already looop", self.hand_shake, self.hand_shake_counter)
+                    
                 self.exchangeData(self.prev_peer)
 
             # else exchange data with a probability and within a channel rate per slot
@@ -297,81 +302,68 @@ class User:
                             print("I found a peer not busy and without ongoing connection.")
                             break
                 if neighbour != None:
-                    self.attempts_counter += 1
+                    self.scenario.attempts +=1
+                    print("Attempts--- ", self.scenario.attempts)
+                    self.connection_duration += 1
+                    neighbour.connection_duration +=  1
+                    print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
+                    print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
+                    self.exchange_size = 0
+                    neighbour.exchange_size = 0
+                    self.exchange_list = []
+                    neighbour.exchange_list = []
+                    self.exchange_counter = 0
+                    neighbour.exchange_counter = 0
+                    self.counter_list = []
+                    neighbour.counter_list = []
+                    self.db_exchange = False
+                    neighbour.db_exchange = False
+                    self.scenario.used_mbs = 0
+                    # First, check the messages missing in the peers devices and add them to the exchange list of messages of every peer
+                    for m in self.messages_list:
+                        print("Neighbour does not have message? ", m not in neighbour.messages_list, m.size, len(self.messages_list))
+                        if m not in neighbour.messages_list and m.zoi in neighbour.zones.keys():
+                            self.exchange_list.append(m)
+                            self.exchange_size = self.exchange_size + m.size
+                            if len(self.counter_list) == 0:
+                                self.counter_list.append(m.size)
+                            else:
+                                self.counter_list.append(self.counter_list[-1]+m.size)
 
-                    # probability to exchange data with this neighbour
-                    # self.prob = np.random.uniform()
-                    self.prob = 1
-                    # hand shake needs to be changed to randint variable
-                    # self.hand_shake = 80
-                    # neighbour.hand_shake = 80
+                    # After choosing the messages that are missing in the peer, we need to shuffle the list
+                    np.random.shuffle(self.exchange_list)
+                    print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
+                    print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
+                    for m in neighbour.messages_list:
+                        print("I don't have message? ", m not in self.messages_list, m.size,len(neighbour.messages_list))
+                        if m not in self.messages_list:
+                            neighbour.exchange_list.append(m)
+                            neighbour.exchange_size = neighbour.exchange_size + m.size
+                            if len(neighbour.counter_list) == 0:
+                                neighbour.counter_list.append(m.size)
+                            else:
+                                neighbour.counter_list.append(neighbour.counter_list[-1]+m.size)
 
-                    # print("Probability to exchange: ", self.prob, " to neighbour: ", neighbour.id)
-                    if self.prob > 0.5:
-                        self.scenario.attempts +=1
-                        print("Attempts--- ", self.scenario.attempts)
-                        self.connection_duration += 1
-                        neighbour.connection_duration +=  1
-                        print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
-                        print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
-                        self.exchange_size = 0
-                        neighbour.exchange_size = 0
-                        self.exchange_list = []
-                        neighbour.exchange_list = []
-                        self.exchange_counter = 0
-                        neighbour.exchange_counter = 0
-                        self.counter_list = []
-                        neighbour.counter_list = []
-                        self.db_exchange = False
-                        neighbour.db_exchange = False
-                        self.scenario.used_mbs = 0
-                        # First, check the messages missing in the peers devices and add them to the exchange list of messages of every peer
-                        for m in self.messages_list:
-                            print("Neighbour does not have message? ", m not in neighbour.messages_list, m.size, len(self.messages_list))
-                            if m not in neighbour.messages_list and m.zoi in neighbour.zones.keys():
-                                self.exchange_list.append(m)
-                                self.exchange_size = self.exchange_size + m.size
-                                if len(self.counter_list) == 0:
-                                    self.counter_list.append(m.size)
-                                else:
-                                    self.counter_list.append(self.counter_list[-1]+m.size)
+                    # After choosing the messages that are missing in the peer, we need to shuffle the list
+                    np.random.shuffle(neighbour.exchange_list)
 
-                        # After choosing the messages that are missing in the peer, we need to shuffle the list
-                        np.random.shuffle(self.exchange_list)
-                        print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
-                        print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
-                        for m in neighbour.messages_list:
-                            print("I don't have message? ", m not in self.messages_list, m.size,len(neighbour.messages_list))
-                            if m not in self.messages_list:
-                                neighbour.exchange_list.append(m)
-                                neighbour.exchange_size = neighbour.exchange_size + m.size
-                                if len(neighbour.counter_list) == 0:
-                                    neighbour.counter_list.append(m.size)
-                                else:
-                                    neighbour.counter_list.append(neighbour.counter_list[-1]+m.size)
+                    # Second, exchange the data with peer!!
+                    print("My exchange db size --> ", self.exchange_size, "Counter list", len(self.counter_list))
+                    print("Neighbour exchange db size --> ", neighbour.exchange_size, "Counter list", len(neighbour.counter_list))
+                    # Count in advance if the connection is going to be useful or not, it means if they have something to exchange.
+                    #In case we have nothing to exchange we use the last slot for the checking
+                    if self.exchange_size == 0 and neighbour.exchange_size == 0:
+                        self.hand_shake = self.hand_shake - 1
+                        neighbour.hand_shake = neighbour.hand_shake-1
+                        self.scenario.count_non_useful +=1
+                        print("NOTHING TO EXCHANGE", self.hand_shake, self.hand_shake_counter)
 
-                        # After choosing the messages that are missing in the peer, we need to shuffle the list
-                        np.random.shuffle(neighbour.exchange_list)
+                    else:
+                        print("THINGS TO EXCHANGE", self.hand_shake, self.hand_shake_counter)
+                        self.scenario.count_useful +=1
 
-                        # Second, exchange the data with peer!!
-                        print("My exchange db size --> ", self.exchange_size, "Counter list", len(self.counter_list))
-                        print("Neighbour exchange db size --> ", neighbour.exchange_size, "Counter list", len(neighbour.counter_list))
-                        # Count in advance if the connection is going to be useful or not, it means if they have something to exchange.
-                        #In case we have nothing to exchange we use the last slot for the checking
-                        if self.exchange_size == 0 and neighbour.exchange_size == 0:
-                            print("NOTHING TO EXCHANGE")
-                            self.hand_shake = self.hand_shake - 1
-                            neighbour.hand_shake = neighbour.hand_shake -1
-                            self.scenario.count_non_useful +=1
-                        else:
-                            print("THINGS TO EXCHANGE")
-                            self.scenario.count_useful +=1
-
-                        self.exchangeData(neighbour)
-                    if self.prob <= 0.5:
-                        self.failures_counter =  self.failures_counter + 1
-
-        
+                    self.exchangeData(neighbour)
+                        
                     
     # Method to check which DB is smaller and start exchanging it. 
     # At this point We have the messages to be exchange (exchange_list) and the total list sizes (exchange_size).
@@ -466,7 +458,7 @@ class User:
                     print(i)
                     print(self.counter_list[i], self.exchange_counter, self.exchange_list[i] not in neighbour.messages_list, len(self.exchange_list)>0)
                     if self.counter_list[i] <= self.exchange_counter and self.exchange_list[i] not in neighbour.messages_list:
-                            print("Adding message to neighbour DB: ", self.exchange_list[i].size)
+                            print("Adding message to neighbour DB: ", self.exchange_list[i].size, self.connection_duration,neighbour.connection_duration)
                             neighbour.messages_list.append(self.exchange_list[i])
                         
             if len(neighbour.exchange_list) > 0:
@@ -474,7 +466,7 @@ class User:
                     print(j)
                     print(neighbour.counter_list[j], neighbour.exchange_counter, neighbour.exchange_list[j] not in self.messages_list,len(neighbour.exchange_list)>0)
                     if neighbour.counter_list[j] <= neighbour.exchange_counter and (neighbour.exchange_list[j] not in self.messages_list):
-                            print("Adding message to my DB: ", neighbour.exchange_list[j].size)
+                            print("Adding message to my DB: ", neighbour.exchange_list[j].size, self.connection_duration,neighbour.connection_duration)
                             self.messages_list.append(neighbour.exchange_list[j])
 
 
