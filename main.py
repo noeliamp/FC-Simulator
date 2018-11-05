@@ -78,8 +78,8 @@ content_size_index = 4
 copyfile('input.json', str(uid)+'/input.json') # Copy the corresponding input file into the folder
 ################## Loop per simulation
 for s in range(0,num_sim):
-    seed = int(seed)
-    np.random.seed(seed_list[seed])
+    # seed = int(seed)
+    # np.random.seed(seed_list[seed])
     print("SIMULATION--> ", s)
     print("content size ", content_size_list[content_size_index])
     # progress bar
