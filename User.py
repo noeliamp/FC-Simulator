@@ -52,7 +52,8 @@ class User:
         self.hand_shake_counter = 0
         self.prob = 0
         if self.scenario.flight_length_distribution == "uniform":
-            self.flight_length = np.random.uniform(self.scenario.min_flight_length, self.scenario.max_flight_length) /self.speed
+            self.flight_length = np.random.uniform(self.scenario.min_flight_length, self.scenario.max_flight_length)/self.speed
+        else:
             self.flight_length = np.inf
         self.vx = 0
         self.vy = 0

@@ -17,9 +17,13 @@ import base64
 import hashlib
 from  shutil import copyfile
 
+file_name = raw_input("Enter the configuration code: ")
+print("Configuration chosen, {}!".format(file_name))
+
 t0 = time.time()
 uid = base64.urlsafe_b64encode(hashlib.md5(os.urandom(128)).digest())[:8]
-with open('input.json') as f:
+
+with open('input-'+ file_name + '.json') as f:
     data = json.load(f)
 
 
@@ -75,7 +79,7 @@ contacts_per_slot_per_user= OrderedDict()
 
 content_size_index = 4
 
-copyfile('input.json', str(uid)+'/input.json') # Copy the corresponding input file into the folder
+copyfile('input-'+ file_name + '.json', str(uid)+'/input-'+ file_name + '.json') # Copy the corresponding input file into the folder
 ################## Loop per simulation
 for s in range(0,num_sim):
     # seed = int(seed)
