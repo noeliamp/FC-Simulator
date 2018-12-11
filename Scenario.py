@@ -42,10 +42,14 @@ class Scenario:
         self.count_non_useful = 0
         self.count_useful = 0
         self.connection_duration_list = OrderedDict()
-        for i in range(0,self.num_zois):
-            zoi = Zoi(i, np.random.uniform(-self.max_area + self.radius_of_persistence, self.max_area - self.radius_of_persistence),
-            np.random.uniform(-self.max_area + self.radius_of_persistence, self.max_area - self.radius_of_persistence),self)
+        if self.num_zois == 1:
+            zoi = Zoi(0,0,0,self)
             self.zois_list.append(zoi)
+        if self.num_zois > 1:
+            for i in range(0,self.num_zois):
+                zoi = Zoi(i, np.random.uniform(-self.max_area + self.radius_of_persistence, self.max_area - self.radius_of_persistence),
+                np.random.uniform(-self.max_area + self.radius_of_persistence, self.max_area - self.radius_of_persistence),self)
+                self.zois_list.append(zoi)
 
         # self.displayScenario()
 

@@ -260,7 +260,7 @@ class User:
                         self.scenario.connection_duration_list[self.connection_duration] +=1
 
                     print("CONNEC DURATION FAR PEER--> ", self.connection_duration)
-                    #if the duration of connection is the hand shake plus one only one slot in this section, it means that there were something
+                    #if the duration of connection is the hand shake plus only one slot in this section, it means that there were something
                     # else to exchange and it didn't work
                     if self.connection_duration == self.hand_shake + 1:
                         self.scenario.count_0_exchange_conn += 1 
