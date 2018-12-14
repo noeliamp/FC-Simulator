@@ -87,7 +87,7 @@ copyfile('input-'+ file_name + '.json', str(uid)+'/input-'+ file_name + '.json')
 ################## Loop per simulation
 for s in range(0,num_sim):
     # seed = int(seed)
-    # np.random.seed(seed_list[seed])
+    # np.random.seed(seed_list[0])
     print("SIMULATION--> ", s)
     print("content size ", content_size)
     # progress bar
@@ -127,7 +127,7 @@ for s in range(0,num_sim):
     
     # CREATION OF ONE CONTENT PER ZOI and initializing counters of nodes with and without content per ZOI
     for z in scenario.zois_list:
-        for m in range(0,num_contents)
+        for m in range(0,num_contents):
             msg = Message(uuid.uuid4(),content_size,z)
             z.content_list.append(msg)
         zoi_counter[z]= 0
@@ -147,11 +147,15 @@ for s in range(0,num_sim):
                 user.messages_list.extend(z.content_list)
                 zoi_users_counter[z] += 1
                 zoi_counter[z] += 1
+                for m in z.content_list:
+                    m.counter += 1
             
             if user.zones[z] == "replication":
                 user.messages_list.extend(z.content_list)
                 rep_users_counter[z] += 1
                 rep_counter[z] += 1
+                for m in z.content_list:
+                    m.counter += 1
             
             if user.zones[z] == "persistence":
                 # user.messages_list.extend(z.content_list)
@@ -183,16 +187,23 @@ for s in range(0,num_sim):
     a_list = []
     a_per_zoi = OrderedDict()
     availability_per_zoi = OrderedDict()
+    a_per_content = OrderedDict()
 
     print("zoi_users_counter ",zoi_users_counter.values(),zoi_counter.values())
     print("rep_users_counter ",rep_users_counter.values(),rep_counter.values())
     print("per_users_counter ",per_users_counter.values(),per_counter.values())
-    # Computing availability per ZOI
+    # Computing availability per ZOI and per CONTENT
     for z in scenario.zois_list:
         if (zoi_users_counter[z]+rep_users_counter[z]) == 0:
             av = 0
+            for m in z.content_list:
+                a_per_content[str(m.id)] = []
+                a_per_content[str(m.id)].append(0)
         else:
             av = (zoi_counter[z] + rep_counter[z])/(zoi_users_counter[z]+rep_users_counter[z])
+            for m in z.content_list:
+                a_per_content[str(m.id)] = []
+                a_per_content[str(m.id)].append(m.counter/(zoi_users_counter[z]+rep_users_counter[z]))
 
         a_per_zoi[z] = av
         availability_per_zoi[z] = []
@@ -214,6 +225,9 @@ for s in range(0,num_sim):
             zoi_users_counter[z] = 0
             per_users_counter[z] = 0
             rep_users_counter[z] = 0
+            # Restart the counter for content availability
+            for m in z.content_list:
+                m.counter = 0
 
         bar.update(c+1)
         slots.append(c)
@@ -258,6 +272,11 @@ for s in range(0,num_sim):
                     if len(scenario.usr_list[j].messages_list)>0:
                         if any(x.zoi == z for x in scenario.usr_list[j].messages_list):
                             per_counter[z] += 1
+
+                # Increment the content counter after moving and exchanging
+                for m in scenario.usr_list[j].messages_list:
+                    if m.zoi == z:
+                        m.counter += 1
                 
                 # we are not counting the nodes that are out of every zoi
 
@@ -278,8 +297,14 @@ for s in range(0,num_sim):
         for z in scenario.zois_list:
             if (zoi_users_counter[z] + rep_users_counter[z]) == 0:
                 av = 0
+                for m in z.content_list:
+                    a_per_content[str(m.id)].append(0)
+
             else:
                 av = (zoi_counter[z] + rep_counter[z])/(zoi_users_counter[z]+rep_users_counter[z])
+                for m in z.content_list:
+                    a_per_content[str(m.id)].append(m.counter/(zoi_users_counter[z]+rep_users_counter[z]))
+
             a_per_zoi[z] = av
             availability_per_zoi[z].append(av)
 
@@ -316,6 +341,7 @@ for s in range(0,num_sim):
     dump.availabilityPerSimulation(np.average(availabilities_list_per_slot))
     dump.listOfAveragesPerSlot(availabilities_list_per_slot)
     dump.con0exchange()
+    dump.availabilityPerContent(a_per_content)
     ########################## End of printing in simulation ##############################
     sys.stdout = orig_stdout
     f.close()

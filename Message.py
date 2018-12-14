@@ -8,8 +8,9 @@ class Message:
         self.id = id
         self.size = max_message_size
         self.zoi = zoi
+        self.counter = 0
         # self.displayMessage()
 
 
     def displayMessage(self):
-        print("ID : ", self.id,  ", Size: ", self.size,  ", ZOI: ", self.zoi.id)
+        print("ID : ", self.id,  ", Size: ", self.size,  ", ZOI: ", self.zoi.id,  ", Counter: ", self.counter)

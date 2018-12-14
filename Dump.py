@@ -85,6 +85,13 @@ class Dump:
         f.write(str(availability_per_zoi))
         f.close()
 
+     ####### Availability per content per slot
+
+    def availabilityPerContent(self,a_per_content):
+        with open(str(self.uid)+'/availability-per-content-'+str(self.s)+'.json', 'w') as fp:
+            json.dump(a_per_content, fp)
+
+
     ####### Availability final point per simulation
 
     def availabilityPerSimulation(self,printa):

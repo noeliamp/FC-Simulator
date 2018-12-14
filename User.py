@@ -299,7 +299,7 @@ class User:
                 for neig in self.neighbours_list:
                         if not neig.busy and neig.ongoing_conn == False:
                             neighbour = neig
-                            print("I found a peer not busy and without ongoing connection.")
+                            print("I found a peer not busy and without ongoing connection. ", neighbour.id)
                             break
                 if neighbour != None:
                     self.scenario.attempts +=1
@@ -392,64 +392,109 @@ class User:
                 neighbour.db_exchange= True
 
             if self.exchange_size <= neighbour.exchange_size and self.db_exchange is False:
+                howMany = 0
                 print("My db is smaller than neighbours ", self.exchange_size)
                 if self.exchange_size == 0:
                     self.db_exchange = True
-                else:
-                    while (self.exchange_counter < self.exchange_size) and (neighbour.used_memory + 1 <= neighbour.total_memory) and (1 <= ((self.scenario.mbs/2) - self.scenario.used_mbs)):    
-                        self.exchange_counter += 1
-                        neighbour.used_memory+= 1
-                        self.scenario.used_mbs += 1
+                else: 
+                    #########################################################################################################
+                    if (self.exchange_counter < self.exchange_size):
+                        howMany = self.exchange_size - self.exchange_counter
+                        # Check if the amount of bits to transfer (self.exchange_size) fits in the available channel rate
+                        if (howMany > ((self.scenario.mbs/2) - self.scenario.used_mbs)):
+                            howMany = (self.scenario.mbs/2) - self.scenario.used_mbs
+                            print("1 Mensaje mas grande que mbs, para que quepa: ",howMany)
+                        if (neighbour.used_memory + howMany > neighbour.total_memory):
+                            howMany = neighbour.total_memory - neighbour.used_memory
+                            print("1 Mensaje mas grande que memoria, para que quepa: ",howMany)
+                        else: 
+                            print("1 Mensaje cabe en memoria: ",howMany)
+
+                        self.exchange_counter += howMany
+                        self.scenario.used_mbs += howMany
+                        neighbour.used_memory += howMany
+
                         self.db_exchange = True 
-                        # print("I send one bit: ", self.exchange_counter)
-                        # print("used memory: ", neighbour.used_memory) 
-                        # print(self.scenario.mbs, self.scenario.used_mbs)
+                        print("I send X bits: ", self.exchange_counter)
+                        print("used memory: ", neighbour.used_memory) 
+                        print(self.scenario.mbs, self.scenario.used_mbs)
 
                 self.scenario.used_mbs_per_slot.append(self.scenario.used_mbs)   
+                #########################################################################################################
                 print("Now we continue with Neigbours db", neighbour.exchange_size)
-                cou = 0
                 if neighbour.exchange_size == 0:
                     neighbour.db_exchange = True
                 else:
-                    while (neighbour.exchange_counter < neighbour.exchange_size) and (self.used_memory + 1 < self.total_memory) and (1 <= (self.scenario.mbs - self.scenario.used_mbs)):
-                        neighbour.exchange_counter += 1
-                        self.used_memory += 1
-                        neighbour.scenario.used_mbs += 1
+                    if (neighbour.exchange_counter < neighbour.exchange_size):
+                        howMany = neighbour.exchange_size - neighbour.exchange_counter
+                        # Check if the amount of bits to transfer (neighbour.exchange_size) fits in the available channel rate
+                        if(howMany > (self.scenario.mbs - self.scenario.used_mbs)):
+                            howMany = self.scenario.mbs - self.scenario.used_mbs
+                            print("2 Mensaje mas grande que mbs, para que quepa: ",howMany)
+                        if (self.used_memory + howMany > self.total_memory):
+                            howMany = self.total_memory - self.used_memory
+                            print("2 Mensaje mas grande que memoria, para que quepa: ",howMany)
+                        else:
+                            print("2 Mensaje cabe en memoria: ",howMany) 
+
+                        neighbour.exchange_counter += howMany
+                        neighbour.scenario.used_mbs += howMany
+                        self.used_memory += howMany
+                        
                         neighbour.db_exchange = True  
-                        cou += 1
-                        # print("Neighbour sends me one bit: ", neighbour.exchange_counter)
-                        # print("used memory: ", self.used_memory)
-                        # print(self.scenario.mbs, self.scenario.used_mbs)
-                neighbour.scenario.used_mbs_per_slot.append(cou)
+                        print("Neighbour sends me X bits: ", neighbour.exchange_counter)
+                        print("used memory: ", self.used_memory)
+                        print(self.scenario.mbs, self.scenario.used_mbs)
+                neighbour.scenario.used_mbs_per_slot.append(howMany)
+            #########################################################################################################
             if neighbour.exchange_size < self.exchange_size and neighbour.db_exchange is False:
+                howMany = 0
                 print("Neighbour db is smaller than mine", neighbour.exchange_size)
                 if neighbour.exchange_size == 0:
                     neighbour.db_exchange = True
                 else:
-                    while (neighbour.exchange_counter < neighbour.exchange_size) and (self.used_memory + 1 < self.total_memory) and (1 <= ((self.scenario.mbs/2) - self.scenario.used_mbs)):
-                        neighbour.exchange_counter += 1
-                        self.used_memory += 1
-                        neighbour.scenario.used_mbs += 1
+                    if (neighbour.exchange_counter < neighbour.exchange_size):
+                        howMany = neighbour.exchange_size - neighbour.exchange_counter
+                        if(howMany > ((self.scenario.mbs/2) - self.scenario.used_mbs)):
+                            howMany = (self.scenario.mbs/2) - self.scenario.used_mbs
+                            print("3 Mensaje mas grande que mbs, para que quepa: ",howMany)
+                        if(self.used_memory + howMany > self.total_memory):
+                            howMany = self.total_memory - self.used_memory
+                            print("3 Mensaje mas grande que memory, para que quepa: ",howMany)
+                    
+                        neighbour.exchange_counter += howMany
+                        neighbour.scenario.used_mbs += howMany
+                        self.used_memory += howMany
+
                         neighbour.db_exchange = True  
-                        # print("Neighbour sends me one bit: ", neighbour.exchange_counter)
-                        # print("used memory: ", self.used_memory)
-                        # print(self.scenario.mbs, self.scenario.used_mbs)
+                        print("Neighbour sends me one bit: ", neighbour.exchange_counter)
+                        print("used memory: ", self.used_memory)
+                        print(self.scenario.mbs, self.scenario.used_mbs)
                 neighbour.scenario.used_mbs_per_slot.append(self.scenario.used_mbs)
+                #########################################################################################################
                 print("Now we continue with my db", self.exchange_size)
-                cou= 0
                 if self.exchange_size == 0:
                     self.db_exchange = True
                 else:
-                    while (self.exchange_counter < self.exchange_size) and (neighbour.used_memory + 1 < neighbour.total_memory) and (1 <= (self.scenario.mbs - self.scenario.used_mbs)):
-                        self.exchange_counter += 1
-                        neighbour.used_memory += 1
-                        self.scenario.used_mbs += 1
+                    if (self.exchange_counter < self.exchange_size):
+                        howMany = self.exchange_size - self.exchange_counter
+                        if(howMany > (self.scenario.mbs - self.scenario.used_mbs)):
+                            howMany = self.scenario.mbs - self.scenario.used_mbs
+                            print("4 Mensaje mas grande que mbs, para que quepa: ",howMany)
+                        if(neighbour.used_memory + self.exchange_size > neighbour.total_memory):
+                            howMany = neighbour.total_memory - neighbour.used_memory
+                            print("4 Mensaje mas grande que memory, para que quepa: ",howMany)
+                        
+                        self.exchange_counter += howMany
+                        neighbour.used_memory += howMany
+                        self.scenario.used_mbs += howMany
+
                         self.db_exchange = True  
-                        cou += 1
-                        # print("I send one bit: ", self.exchange_counter)
-                        # print("used memory: ", neighbour.used_memory)
-                        # print(self.scenario.mbs, self.scenario.used_mbs)
-                self.scenario.used_mbs_per_slot.append(cou)
+                        print("I send one bit: ", self.exchange_counter)
+                        print("used memory: ", neighbour.used_memory)
+                        print(self.scenario.mbs, self.scenario.used_mbs)
+                self.scenario.used_mbs_per_slot.append(howMany)
+                #########################################################################################################
 
             # Now we exchange the db based on the already exchanged bytes of messages
             print("LEEEEEEEN--> ", len(self.counter_list),len(neighbour.counter_list), len(self.exchange_list) , len(neighbour.exchange_list) )
@@ -477,6 +522,7 @@ class User:
             self.scenario.used_mbs = 0
 
             # If any of the peers DB has not been totally exchanged we have to store the peer device to keep the connection for next slot
+            print("COMPROBAR---------> ",self.exchange_counter, self.exchange_size, neighbour.exchange_counter, neighbour.exchange_size )
             if self.exchange_counter < self.exchange_size or neighbour.exchange_counter < neighbour.exchange_size:
                 self.prev_peer = neighbour
                 print(" PASSING NEIGHBOUR TO PREV DB", neighbour.id, self.prev_peer.id, neighbour == self.prev_peer)
