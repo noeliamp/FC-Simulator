@@ -9,7 +9,7 @@ class Zoi:
         self.x = posX
         self.y = posY
         self.content_list = []
-        self.displayZoi()
+        # self.displayZoi()
 
 
     def displayZoi(self):

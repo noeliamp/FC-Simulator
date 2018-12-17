@@ -27,7 +27,7 @@ class Dump:
             z.append(len(self.scenario.usr_list[i].messages_list))
             l.append(self.scenario.usr_list[i].zones.values())
 
-            print("User id: ", self.scenario.usr_list[i].id, "position x: ", self.scenario.usr_list[i].x_list[-1] , "position y: ", self.scenario.usr_list[i].y_list[-1], "zones: ",self.scenario.usr_list[i].zones.values())
+            # print("User id: ", self.scenario.usr_list[i].id, "position x: ", self.scenario.usr_list[i].x_list[-1] , "position y: ", self.scenario.usr_list[i].y_list[-1], "zones: ",self.scenario.usr_list[i].zones.values())
 
         # print(x)
         # print(y)

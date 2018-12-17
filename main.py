@@ -94,10 +94,10 @@ for s in range(0,num_sim):
     bar = progressbar.ProgressBar(maxval=num_slots, \
         widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
     bar.start()
-    orig_stdout = sys.stdout
-    # f = open(os.devnull, 'w')
-    f = open(str(uid)+'/out-'+str(s)+'.txt', 'w')
-    sys.stdout = f      
+    # orig_stdout = sys.stdout
+    # # f = open(os.devnull, 'w')
+    # f = open(str(uid)+'/out-'+str(s)+'.txt', 'w')
+    # sys.stdout = f      
 
 
     usr_list = []        # list of users in the entire scenario
@@ -105,20 +105,20 @@ for s in range(0,num_sim):
     # This creates N objects of User class
     if num_users_distribution == "poisson":
         num_users = np.random.poisson(density_users)
-        print("Number of users:", num_users)
+        # print("Number of users:", num_users)
     else:
         num_users=density_users
-        print("Number of users:", num_users)
+        # print("Number of users:", num_users)
 
-    print("Content size: ", content_size)
+    # print("Content size: ", content_size)
 
     # This creates N objects of ZOI class
     if num_zois_distribution == "poisson":
         num_zois = np.random.poisson(density_zois)
-        print("Number of zois:", num_zois)
+        # print("Number of zois:", num_zois)
     else:
         num_zois=density_zois
-        print("Number of zois:", num_zois)
+        # print("Number of zois:", num_zois)
 
 
     # CREATION OF SCENARIO With num_zois number of zois
@@ -189,9 +189,9 @@ for s in range(0,num_sim):
     availability_per_zoi = OrderedDict()
     a_per_content = OrderedDict()
 
-    print("zoi_users_counter ",zoi_users_counter.values(),zoi_counter.values())
-    print("rep_users_counter ",rep_users_counter.values(),rep_counter.values())
-    print("per_users_counter ",per_users_counter.values(),per_counter.values())
+    # print("zoi_users_counter ",zoi_users_counter.values(),zoi_counter.values())
+    # print("rep_users_counter ",rep_users_counter.values(),rep_counter.values())
+    # print("per_users_counter ",per_users_counter.values(),per_counter.values())
     # Computing availability per ZOI and per CONTENT
     for z in scenario.zois_list:
         if (zoi_users_counter[z]+rep_users_counter[z]) == 0:
@@ -210,8 +210,8 @@ for s in range(0,num_sim):
 
     a = np.average(a_per_zoi.values())
 
-    print("per zoi availability: ", a_per_zoi.values())
-    print("this availability: " , a)
+    # print("per zoi availability: ", a_per_zoi.values())
+    # print("this availability: " , a)
 
     availabilities_list_per_slot = []
     c = 0
@@ -289,9 +289,9 @@ for s in range(0,num_sim):
         rep_users.append(rep_users_counter[z])
         per_users.append(per_users_counter[z])
 
-        print("zoi_users_counter ",zoi_users_counter.values(),zoi_counter.values())
-        print("rep_users_counter ",rep_users_counter.values(),rep_counter.values())
-        print("per_users_counter ",per_users_counter.values(),per_counter.values())
+        # print("zoi_users_counter ",zoi_users_counter.values(),zoi_counter.values())
+        # print("rep_users_counter ",rep_users_counter.values(),rep_counter.values())
+        # print("per_users_counter ",per_users_counter.values(),per_counter.values())
 
         # we add the current slot availability to the list
         for z in scenario.zois_list:
@@ -311,8 +311,8 @@ for s in range(0,num_sim):
         a = np.average(a_per_zoi.values())
         availabilities_list_per_slot.append(a)
 
-        print("per zoi availability: ", a_per_zoi.values())
-        print("this availability: " , a)
+        # print("per zoi availability: ", a_per_zoi.values())
+        # print("this availability: " , a)
 
     # Add the availabilities in this simulation to the final list of availabilities
     avb_per_sim_per_slot.append(availabilities_list_per_slot)
@@ -327,7 +327,7 @@ for s in range(0,num_sim):
 
             scenario.usr_list[k].ongoing_conn = False
             scenario.usr_list[k].prev_peer.ongoing_conn = False
-            print("CONNEC DURATION out--> ", scenario.usr_list[k].connection_duration)
+            # print("CONNEC DURATION out--> ", scenario.usr_list[k].connection_duration)
      
     for u in scenario.usr_list:
         contacts_per_slot_per_user[u.id] = u.contacts_per_slot
@@ -343,24 +343,8 @@ for s in range(0,num_sim):
     dump.con0exchange()
     dump.availabilityPerContent(a_per_content)
     ########################## End of printing in simulation ##############################
-    sys.stdout = orig_stdout
-    f.close()
+    # sys.stdout = orig_stdout
+    # f.close()
     bar.finish()
     t1 = time.time()
     print ("Total time running: %s minutes \n" % str((t1-t0)/60))
-
-########################## End of simulations, print and dump relevant final info (old version to compare) ##############################
-
-# print("last availability: ", avb_per_sim)
-# print("flight length: ", scenario.flight_length_distribution)
-# print("flight : ", scenario.usr_list[0].flight_length)
-# print("speed : ", scenario.usr_list[0].speed)
-# print("connections with 0 exchange: ", scenario.count_0_exchange_conn)
-
-# np.savetxt(str(uid)+'/availability_points.txt', avb_per_sim , fmt="%1.3f")
-
-# outfile = open(str(uid)+'/availability_per_slot_per_sim.txt', 'w')
-# for result in avb_per_sim_per_slot:
-#     outfile.writelines(str(result))
-#     outfile.write('\n')
-# outfile.close()
