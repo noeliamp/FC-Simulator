@@ -53,6 +53,8 @@ pause_distribution = data["pause_distribution"]
 delta = data["delta"]                                   # time per slot
 channel_rate = data["channel_rate"]
 max_memory = data["max_memory"]                         # max memory allowed per user device
+if max_memory == "inf":
+    max_memory = np.inf
 max_message_size = data["max_message_size"]
 min_message_size = data["min_message_size"]
 content_size = np.random.uniform(max_message_size, min_message_size)
@@ -60,9 +62,6 @@ min_flight_length = data["min_flight_length"]
 max_flight_length = data["max_flight_length"]
 flight_length_distribution = data["flight_length_distribution"]
 hand_shake = data["hand_shake"]
-window_size = data["window_size"]
-num_content_per_zoi = data["num_content_per_zoi"]
-seed = data["seed"]
 num_contents = data["num_contents"]
 
 
@@ -90,14 +89,17 @@ for s in range(0,num_sim):
     # np.random.seed(seed_list[0])
     print("SIMULATION--> ", s)
     print("content size ", content_size)
+    print("Max memory ", max_memory)
+
     # progress bar
     bar = progressbar.ProgressBar(maxval=num_slots, \
         widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
     bar.start()
-    # orig_stdout = sys.stdout
-    # # f = open(os.devnull, 'w')
-    # f = open(str(uid)+'/out-'+str(s)+'.txt', 'w')
-    # sys.stdout = f      
+
+    orig_stdout = sys.stdout
+    # f = open(os.devnull, 'w')
+    f = open(str(uid)+'/out-'+str(s)+'.txt', 'w')
+    sys.stdout = f      
 
 
     usr_list = []        # list of users in the entire scenario
@@ -138,6 +140,7 @@ for s in range(0,num_sim):
         rep_users_counter[z] = 0   
 
     # CREATION OF USERS
+    prob = 1
     for i in range(0,num_users):
         user = User(i,np.random.uniform(-max_area, max_area),np.random.uniform(-max_area, max_area), scenario,max_memory)
         # add the content to each user according to the ZOIs that they belong to
@@ -150,7 +153,7 @@ for s in range(0,num_sim):
                 for m in z.content_list:
                     m.counter += 1
             
-            if user.zones[z] == "replication":
+            if user.zones[z] == "replication" and (np.random.uniform() < prob):
                 user.messages_list.extend(z.content_list)
                 rep_users_counter[z] += 1
                 rep_counter[z] += 1
@@ -343,8 +346,8 @@ for s in range(0,num_sim):
     dump.con0exchange()
     dump.availabilityPerContent(a_per_content)
     ########################## End of printing in simulation ##############################
-    # sys.stdout = orig_stdout
-    # f.close()
+    sys.stdout = orig_stdout
+    f.close()
     bar.finish()
     t1 = time.time()
     print ("Total time running: %s minutes \n" % str((t1-t0)/60))

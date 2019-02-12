@@ -3,7 +3,7 @@ class Zoi:
     'Common base class for all ZOIS'
 
     def __init__(self, id, posX, posY, scenario):
-        print ("Creating new ZOI...")
+        # print ("Creating new ZOI...")
         self.id = id
         self.scenario = scenario
         self.x = posX

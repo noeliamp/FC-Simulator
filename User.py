@@ -9,7 +9,7 @@ class User:
 
     def __init__(self, id, posX, posY, scenario, max_memory):
 
-        print ("Creating new user...")
+        # print ("Creating new user...")
         self.id = id
         self.scenario = scenario
         self.total_memory = max_memory
@@ -189,7 +189,7 @@ class User:
         self.calculateZones()
 
     def userContact(self,c):
-        # print ("My id is ", self.id, " Am I busy for this slot: ", self.busy)
+        print ("My id is ", self.id, " Am I busy for this slot: ", self.busy)
         my_rep_zones = []
         my_inter_zones = []
         if "replication" in self.zones.values():
@@ -234,7 +234,7 @@ class User:
             # Once we have the list of neighbours, first check if there is a previous connection ongoing and the peer is still inside my tx range
             # which is the same as been in the neighbours list since we checked the positions above
             if self.ongoing_conn == True and self.prev_peer in self.neighbours_list:
-                # print("I have a prev peer and it is still close. ", self.prev_peer.id)
+                print("I have a prev peer and it is still close. ", self.prev_peer.id)
                 self.connection_duration += 1
                 self.prev_peer.connection_duration += 1
                 # keep exchanging
@@ -243,7 +243,7 @@ class User:
                 if self.exchange_size == 0 and self.prev_peer.exchange_size == 0:
                     self.hand_shake = self.hand_shake - 1
                     self.prev_peer.hand_shake = self.prev_peer.hand_shake-1
-                    # print("NOTHING TO EXCHANGE already loop", self.hand_shake, self.hand_shake_counter)
+                    print("NOTHING TO EXCHANGE already loop", self.hand_shake, self.hand_shake_counter)
                 # else:
                 #     print("THINGS TO EXCHANGE already looop", self.hand_shake, self.hand_shake_counter)
                     
@@ -253,13 +253,13 @@ class User:
             else:
                 # if my prev peer is not in my communication range we don't exchange data anymore
                 if self.ongoing_conn == True and self.prev_peer not in self.neighbours_list:
-                    # print("I have a prev peer and it is far. ", self.prev_peer.id)
+                    print("I have a prev peer and it is far. ", self.prev_peer.id)
                     if self.connection_duration not in self.scenario.connection_duration_list.keys():
                         self.scenario.connection_duration_list[self.connection_duration] = 1
                     else:
                         self.scenario.connection_duration_list[self.connection_duration] +=1
 
-                    # print("CONNEC DURATION FAR PEER--> ", self.connection_duration)
+                    print("CONNEC DURATION FAR PEER--> ", self.connection_duration)
                     #if the duration of connection is the hand shake plus only one slot in this section, it means that there were something
                     # else to exchange and it didn't work
                     if self.connection_duration == self.hand_shake + 1:
@@ -293,21 +293,21 @@ class User:
                     self.prev_peer.hand_shake_counter = 0
 
                 # Continue looking for neighbours   
-                # print("Neighbour list: ", len(self.neighbours_list))
+                print("Neighbour list: ", len(self.neighbours_list))
                 # In case we want to connect with more than one neighbour we need to run a loop. Now we only select one neighbour from the list.
                 neighbour = None
                 for neig in self.neighbours_list:
                         if not neig.busy and neig.ongoing_conn == False:
                             neighbour = neig
-                            # print("I found a peer not busy and without ongoing connection. ", neighbour.id)
+                            print("I found a peer not busy and without ongoing connection. ", neighbour.id)
                             break
                 if neighbour != None:
                     self.scenario.attempts +=1
-                    # print("Attempts--- ", self.scenario.attempts)
+                    print("Attempts--- ", self.scenario.attempts)
                     self.connection_duration += 1
                     neighbour.connection_duration +=  1
-                    # print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
-                    # print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
+                    print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
+                    print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
                     self.exchange_size = 0
                     neighbour.exchange_size = 0
                     self.exchange_list = []
@@ -321,7 +321,7 @@ class User:
                     self.scenario.used_mbs = 0
                     # First, check the messages missing in the peers devices and add them to the exchange list of messages of every peer
                     for m in self.messages_list:
-                        # print("Neighbour does not have message? ", m not in neighbour.messages_list, m.size, len(self.messages_list))
+                        print("Neighbour does not have message? ", m not in neighbour.messages_list, m.size, len(self.messages_list))
                         if m not in neighbour.messages_list and m.zoi in neighbour.zones.keys():
                             self.exchange_list.append(m)
                             self.exchange_size = self.exchange_size + m.size
@@ -335,7 +335,7 @@ class User:
                     # print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
                     # print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
                     for m in neighbour.messages_list:
-                        # print("I don't have message? ", m not in self.messages_list, m.size,len(neighbour.messages_list))
+                        print("I don't have message? ", m not in self.messages_list, m.size,len(neighbour.messages_list))
                         if m not in self.messages_list:
                             neighbour.exchange_list.append(m)
                             neighbour.exchange_size = neighbour.exchange_size + m.size
@@ -348,18 +348,18 @@ class User:
                     np.random.shuffle(neighbour.exchange_list)
 
                     # Second, exchange the data with peer!!
-                    # print("My exchange db size --> ", self.exchange_size, "Counter list", len(self.counter_list))
-                    # print("Neighbour exchange db size --> ", neighbour.exchange_size, "Counter list", len(neighbour.counter_list))
+                    print("My exchange db size --> ", self.exchange_size, "Counter list", len(self.counter_list))
+                    print("Neighbour exchange db size --> ", neighbour.exchange_size, "Counter list", len(neighbour.counter_list))
                     # Count in advance if the connection is going to be useful or not, it means if they have something to exchange.
                     #In case we have nothing to exchange we use the last slot for the checking
                     if self.exchange_size == 0 and neighbour.exchange_size == 0:
                         self.hand_shake = self.hand_shake - 1
                         neighbour.hand_shake = neighbour.hand_shake-1
                         self.scenario.count_non_useful +=1
-                        # print("NOTHING TO EXCHANGE", self.hand_shake, self.hand_shake_counter)
+                        print("NOTHING TO EXCHANGE", self.hand_shake, self.hand_shake_counter)
 
                     else:
-                        # print("THINGS TO EXCHANGE", self.hand_shake, self.hand_shake_counter)
+                        print("THINGS TO EXCHANGE", self.hand_shake, self.hand_shake_counter)
                         self.scenario.count_useful +=1
 
                     self.exchangeData(neighbour)
@@ -375,25 +375,25 @@ class User:
         neighbour.ongoing_conn = True
 
         if self.hand_shake_counter < self.hand_shake:
-            # print("ENTRO EN HANDSHAKE: ", self.id,neighbour.id, self.hand_shake_counter,self.hand_shake,self.connection_duration)
+            print("ENTRO EN HANDSHAKE: ", self.id,neighbour.id, self.hand_shake_counter,self.hand_shake,self.connection_duration)
             self.hand_shake_counter += 1
             neighbour.hand_shake_counter += 1
             self.prev_peer = neighbour
             self.ongoing_conn = True
             self.prev_peer.ongoing_conn = True
             self.prev_peer.prev_peer = self
-            # print(self.busy, "hand shake not entry: ",self.hand_shake_counter, "neighbour size --> ", neighbour.exchange_size, self.exchange_size, neighbour.exchange_counter, self.exchange_counter)
+            print(self.busy, "hand shake not entry: ",self.hand_shake_counter, "neighbour size --> ", neighbour.exchange_size, self.exchange_size, neighbour.exchange_counter, self.exchange_counter)
             
         else:
-            # print(self.busy, "hand shake entry: ",self.hand_shake_counter, "neighbour size --> ", neighbour.exchange_size, self.exchange_size, neighbour.exchange_counter, self.exchange_counter)
+            print(self.busy, "hand shake entry: ",self.hand_shake_counter, "neighbour size --> ", neighbour.exchange_size, self.exchange_size, neighbour.exchange_counter, self.exchange_counter)
             if self.exchange_size == 0 and neighbour.exchange_size == 0:
-                # print("ENTRO DIRECTAMENTE EN 0 PARA EXCHANGE -- ", self.connection_duration)
+                print("ENTRO DIRECTAMENTE EN 0 PARA EXCHANGE -- ", self.connection_duration)
                 self.db_exchange = True
                 neighbour.db_exchange= True
 
             if self.exchange_size <= neighbour.exchange_size and self.db_exchange is False:
                 howMany = 0
-                # print("My db is smaller than neighbours ", self.exchange_size)
+                print("My db is smaller than neighbours ", self.exchange_size)
                 if self.exchange_size == 0:
                     self.db_exchange = True
                 else: 
@@ -403,25 +403,25 @@ class User:
                         # Check if the amount of bits to transfer (self.exchange_size) fits in the available channel rate
                         if (howMany > ((self.scenario.mbs/2) - self.scenario.used_mbs)):
                             howMany = (self.scenario.mbs/2) - self.scenario.used_mbs
-                            # print("1 Mensaje mas grande que mbs, para que quepa: ",howMany)
+                            print("1 Mensaje mas grande que mbs, para que quepa: ",howMany)
                         if (neighbour.used_memory + howMany > neighbour.total_memory):
                             howMany = neighbour.total_memory - neighbour.used_memory
-                            # print("1 Mensaje mas grande que memoria, para que quepa: ",howMany)
+                            print("1 Mensaje mas grande que memoria, para que quepa: ",howMany)
                         # else: 
-                        #     print("1 Mensaje cabe en memoria: ",howMany)
+                            # print("1 Mensaje cabe en memoria: ",howMany)
 
                         self.exchange_counter += howMany
                         self.scenario.used_mbs += howMany
                         neighbour.used_memory += howMany
 
                         self.db_exchange = True 
-                        # print("I send X bits: ", self.exchange_counter)
-                        # print("used memory: ", neighbour.used_memory) 
-                        # print(self.scenario.mbs, self.scenario.used_mbs)
+                        print("I send X bits: ", self.exchange_counter)
+                        print("used memory: ", neighbour.used_memory) 
+                        print(self.scenario.mbs, self.scenario.used_mbs)
 
                 self.scenario.used_mbs_per_slot.append(self.scenario.used_mbs)   
                 #########################################################################################################
-                # print("Now we continue with Neigbours db", neighbour.exchange_size)
+                print("Now we continue with Neigbours db", neighbour.exchange_size)
                 if neighbour.exchange_size == 0:
                     neighbour.db_exchange = True
                 else:
@@ -430,10 +430,10 @@ class User:
                         # Check if the amount of bits to transfer (neighbour.exchange_size) fits in the available channel rate
                         if(howMany > (self.scenario.mbs - self.scenario.used_mbs)):
                             howMany = self.scenario.mbs - self.scenario.used_mbs
-                            # print("2 Mensaje mas grande que mbs, para que quepa: ",howMany)
+                            print("2 Mensaje mas grande que mbs, para que quepa: ",howMany)
                         if (self.used_memory + howMany > self.total_memory):
                             howMany = self.total_memory - self.used_memory
-                            # print("2 Mensaje mas grande que memoria, para que quepa: ",howMany)
+                            print("2 Mensaje mas grande que memoria, para que quepa: ",howMany)
                         # else:
                         #     print("2 Mensaje cabe en memoria: ",howMany) 
 
@@ -442,14 +442,14 @@ class User:
                         self.used_memory += howMany
                         
                         neighbour.db_exchange = True  
-                        # print("Neighbour sends me X bits: ", neighbour.exchange_counter)
-                        # print("used memory: ", self.used_memory)
-                        # print(self.scenario.mbs, self.scenario.used_mbs)
+                        print("Neighbour sends me X bits: ", neighbour.exchange_counter)
+                        print("used memory: ", self.used_memory)
+                        print(self.scenario.mbs, self.scenario.used_mbs)
                 neighbour.scenario.used_mbs_per_slot.append(howMany)
             #########################################################################################################
             if neighbour.exchange_size < self.exchange_size and neighbour.db_exchange is False:
                 howMany = 0
-                # print("Neighbour db is smaller than mine", neighbour.exchange_size)
+                print("Neighbour db is smaller than mine", neighbour.exchange_size)
                 if neighbour.exchange_size == 0:
                     neighbour.db_exchange = True
                 else:
@@ -457,22 +457,22 @@ class User:
                         howMany = neighbour.exchange_size - neighbour.exchange_counter
                         if(howMany > ((self.scenario.mbs/2) - self.scenario.used_mbs)):
                             howMany = (self.scenario.mbs/2) - self.scenario.used_mbs
-                            # print("3 Mensaje mas grande que mbs, para que quepa: ",howMany)
+                            print("3 Mensaje mas grande que mbs, para que quepa: ",howMany)
                         if(self.used_memory + howMany > self.total_memory):
                             howMany = self.total_memory - self.used_memory
-                            # print("3 Mensaje mas grande que memory, para que quepa: ",howMany)
+                            print("3 Mensaje mas grande que memory, para que quepa: ",howMany)
                     
                         neighbour.exchange_counter += howMany
                         neighbour.scenario.used_mbs += howMany
                         self.used_memory += howMany
 
                         neighbour.db_exchange = True  
-                        # print("Neighbour sends me one bit: ", neighbour.exchange_counter)
-                        # print("used memory: ", self.used_memory)
-                        # print(self.scenario.mbs, self.scenario.used_mbs)
+                        print("Neighbour sends me one bit: ", neighbour.exchange_counter)
+                        print("used memory: ", self.used_memory)
+                        print(self.scenario.mbs, self.scenario.used_mbs)
                 neighbour.scenario.used_mbs_per_slot.append(self.scenario.used_mbs)
                 #########################################################################################################
-                # print("Now we continue with my db", self.exchange_size)
+                print("Now we continue with my db", self.exchange_size)
                 if self.exchange_size == 0:
                     self.db_exchange = True
                 else:
@@ -480,38 +480,38 @@ class User:
                         howMany = self.exchange_size - self.exchange_counter
                         if(howMany > (self.scenario.mbs - self.scenario.used_mbs)):
                             howMany = self.scenario.mbs - self.scenario.used_mbs
-                            # print("4 Mensaje mas grande que mbs, para que quepa: ",howMany)
+                            print("4 Mensaje mas grande que mbs, para que quepa: ",howMany)
                         if(neighbour.used_memory + self.exchange_size > neighbour.total_memory):
                             howMany = neighbour.total_memory - neighbour.used_memory
-                            # print("4 Mensaje mas grande que memory, para que quepa: ",howMany)
+                            print("4 Mensaje mas grande que memory, para que quepa: ",howMany)
                         
                         self.exchange_counter += howMany
                         neighbour.used_memory += howMany
                         self.scenario.used_mbs += howMany
 
                         self.db_exchange = True  
-                        # print("I send one bit: ", self.exchange_counter)
-                        # print("used memory: ", neighbour.used_memory)
-                        # print(self.scenario.mbs, self.scenario.used_mbs)
+                        print("I send one bit: ", self.exchange_counter)
+                        print("used memory: ", neighbour.used_memory)
+                        print(self.scenario.mbs, self.scenario.used_mbs)
                 self.scenario.used_mbs_per_slot.append(howMany)
                 #########################################################################################################
 
             # Now we exchange the db based on the already exchanged bytes of messages
-            # print("LEEEEEEEN--> ", len(self.counter_list),len(neighbour.counter_list), len(self.exchange_list) , len(neighbour.exchange_list) )
+            print("LEEEEEEEN--> ", len(self.counter_list),len(neighbour.counter_list), len(self.exchange_list) , len(neighbour.exchange_list) )
             if len(self.exchange_list) > 0:
                 for i in range(0,len(self.counter_list)):
-                    # print(i)
-                    # print(self.counter_list[i], self.exchange_counter, self.exchange_list[i] not in neighbour.messages_list, len(self.exchange_list)>0)
+                    print(i)
+                    print(self.counter_list[i], self.exchange_counter, self.exchange_list[i] not in neighbour.messages_list, len(self.exchange_list)>0)
                     if self.counter_list[i] <= self.exchange_counter and self.exchange_list[i] not in neighbour.messages_list:
-                            # print("Adding message to neighbour DB: ", self.exchange_list[i].size, self.connection_duration,neighbour.connection_duration)
+                            print("Adding message to neighbour DB: ", self.exchange_list[i].size, self.connection_duration,neighbour.connection_duration)
                             neighbour.messages_list.append(self.exchange_list[i])
                         
             if len(neighbour.exchange_list) > 0:
                 for j in range(0,len(neighbour.counter_list)):
-                    # print(j)
-                    # print(neighbour.counter_list[j], neighbour.exchange_counter, neighbour.exchange_list[j] not in self.messages_list,len(neighbour.exchange_list)>0)
+                    print(j)
+                    print(neighbour.counter_list[j], neighbour.exchange_counter, neighbour.exchange_list[j] not in self.messages_list,len(neighbour.exchange_list)>0)
                     if neighbour.counter_list[j] <= neighbour.exchange_counter and (neighbour.exchange_list[j] not in self.messages_list):
-                            # print("Adding message to my DB: ", neighbour.exchange_list[j].size, self.connection_duration,neighbour.connection_duration)
+                            print("Adding message to my DB: ", neighbour.exchange_list[j].size, self.connection_duration,neighbour.connection_duration)
                             self.messages_list.append(neighbour.exchange_list[j])
 
 
@@ -522,23 +522,23 @@ class User:
             self.scenario.used_mbs = 0
 
             # If any of the peers DB has not been totally exchanged we have to store the peer device to keep the connection for next slot
-            # print("COMPROBAR---------> ",self.exchange_counter, self.exchange_size, neighbour.exchange_counter, neighbour.exchange_size )
+            print("COMPROBAR---------> ",self.exchange_counter, self.exchange_size, neighbour.exchange_counter, neighbour.exchange_size )
             if self.exchange_counter < self.exchange_size or neighbour.exchange_counter < neighbour.exchange_size:
                 self.prev_peer = neighbour
-                # print(" PASSING NEIGHBOUR TO PREV DB", neighbour.id, self.prev_peer.id, neighbour == self.prev_peer)
+                print(" PASSING NEIGHBOUR TO PREV DB", neighbour.id, self.prev_peer.id, neighbour == self.prev_peer)
                 self.ongoing_conn = True
                 self.prev_peer.ongoing_conn = True
                 self.prev_peer.prev_peer = self
                 
             # If everything has been exchanged, reset parameters
             if self.exchange_counter == self.exchange_size and neighbour.exchange_counter == neighbour.exchange_size:
-                # print("EVERYTHING HAS BEEN EXCHANGED WITH: ", self.exchange_counter,self.exchange_size)
-                # print("ENTRO AQUI", self.exchange_counter, self.exchange_size,neighbour.exchange_counter, neighbour.exchange_size, self.used_memory, self.used_memory)
+                print("EVERYTHING HAS BEEN EXCHANGED WITH: ", self.exchange_counter,self.exchange_size)
+                print("ENTRO AQUI", self.exchange_counter, self.exchange_size,neighbour.exchange_counter, neighbour.exchange_size, self.used_memory, self.used_memory)
                 if self.connection_duration not in self.scenario.connection_duration_list.keys():
                     self.scenario.connection_duration_list[self.connection_duration] = 1
                 else:
                     self.scenario.connection_duration_list[self.connection_duration] +=1
-                # print("CONNEC DURATION normal--> ", self.connection_duration)
+                print("CONNEC DURATION normal--> ", self.connection_duration)
 
         
                 self.connection_duration = 0

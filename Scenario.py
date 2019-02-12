@@ -8,7 +8,7 @@ class Scenario:
 
     def __init__(self, radius_of_interest, radius_of_replication, radius_of_persistence, max_area, speed_distribution,pause_distribution,min_pause,max_pause,
     min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois):
-        print ("Creating new scenario...")
+        # print ("Creating new scenario...")
         self.square_radius_of_interest = radius_of_interest*radius_of_interest
         self.square_radius_of_replication = radius_of_replication*radius_of_replication
         self.square_radius_of_persistence = radius_of_persistence*radius_of_persistence
