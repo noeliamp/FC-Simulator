@@ -86,7 +86,7 @@ copyfile('input-'+ file_name + '.json', str(uid)+'/input-'+ file_name + '.json')
 ################## Loop per simulation
 for s in range(0,num_sim):
     # seed = int(seed)
-    # np.random.seed(seed_list[0])
+    np.random.seed(seed_list[0])
     print("SIMULATION--> ", s)
     print("content size ", content_size)
     print("Max memory ", max_memory)
@@ -140,21 +140,22 @@ for s in range(0,num_sim):
         rep_users_counter[z] = 0   
 
     # CREATION OF USERS
-    prob = 1
     for i in range(0,num_users):
         user = User(i,np.random.uniform(-max_area, max_area),np.random.uniform(-max_area, max_area), scenario,max_memory)
         # add the content to each user according to the ZOIs that they belong to
         for z in user.zones.keys():
             # to compute the first availability (if node is not out it will have the message for sure)
             if user.zones[z] == "interest":
-                user.messages_list.extend(z.content_list)
+                np.random.shuffle(z.content_list)
+                user.messages_list.extend(z.content_list[:300])
                 zoi_users_counter[z] += 1
                 zoi_counter[z] += 1
                 for m in z.content_list:
                     m.counter += 1
             
-            if user.zones[z] == "replication" and (np.random.uniform() < prob):
-                user.messages_list.extend(z.content_list)
+            if user.zones[z] == "replication":
+                np.random.shuffle(z.content_list)
+                user.messages_list.extend(z.content_list[:300])
                 rep_users_counter[z] += 1
                 rep_counter[z] += 1
                 for m in z.content_list:
@@ -221,6 +222,7 @@ for s in range(0,num_sim):
     
     ################## Loop per slot into a simulation
     while c < num_slots and a > 0:
+        print("SLOT NUMBER: ", c)
         for z in scenario.zois_list:
             zoi_counter[z] = 0
             per_counter[z] = 0
