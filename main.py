@@ -147,7 +147,7 @@ for s in range(0,num_sim):
             # to compute the first availability (if node is not out it will have the message for sure)
             if user.zones[z] == "interest":
                 np.random.shuffle(z.content_list)
-                user.messages_list.extend(z.content_list[:300])
+                user.messages_list.extend(z.content_list[:num_contents])
                 zoi_users_counter[z] += 1
                 zoi_counter[z] += 1
                 for m in z.content_list:
@@ -155,7 +155,7 @@ for s in range(0,num_sim):
             
             if user.zones[z] == "replication":
                 np.random.shuffle(z.content_list)
-                user.messages_list.extend(z.content_list[:300])
+                user.messages_list.extend(z.content_list[:num_contents])
                 rep_users_counter[z] += 1
                 rep_counter[z] += 1
                 for m in z.content_list:
