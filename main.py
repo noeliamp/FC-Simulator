@@ -63,6 +63,7 @@ max_flight_length = data["max_flight_length"]
 flight_length_distribution = data["flight_length_distribution"]
 hand_shake = data["hand_shake"]
 num_contents = data["num_contents"]
+num_contents_node = data["num_contents_node"]
 
 
 seed_list = [15482669,15482681,15482683,15482711,15482729,15482941,15482947,15482977,15482993,15483023,15483029,15483067,15483077,15483079,15483089,15483101,15483103,15482743,15482771,15482773,15482783,15482807,15482809,15482827,15482851,15482861,15482893,15482911,15482917,15482923]
@@ -86,7 +87,7 @@ copyfile('input-'+ file_name + '.json', str(uid)+'/input-'+ file_name + '.json')
 ################## Loop per simulation
 for s in range(0,num_sim):
     # seed = int(seed)
-    np.random.seed(seed_list[0])
+    # np.random.seed(seed_list[0])
     print("SIMULATION--> ", s)
     print("content size ", content_size)
     print("Max memory ", max_memory)
@@ -147,7 +148,7 @@ for s in range(0,num_sim):
             # to compute the first availability (if node is not out it will have the message for sure)
             if user.zones[z] == "interest":
                 np.random.shuffle(z.content_list)
-                user.messages_list.extend(z.content_list[:num_contents])
+                user.messages_list.extend(z.content_list[:num_contents_node])
                 zoi_users_counter[z] += 1
                 zoi_counter[z] += 1
                 for m in z.content_list:
@@ -155,7 +156,7 @@ for s in range(0,num_sim):
             
             if user.zones[z] == "replication":
                 np.random.shuffle(z.content_list)
-                user.messages_list.extend(z.content_list[:num_contents])
+                user.messages_list.extend(z.content_list[:num_contents_node])
                 rep_users_counter[z] += 1
                 rep_counter[z] += 1
                 for m in z.content_list:
@@ -218,6 +219,7 @@ for s in range(0,num_sim):
     # print("this availability: " , a)
 
     availabilities_list_per_slot = []
+    nodes_in_zoi = []
     c = 0
     
     ################## Loop per slot into a simulation
@@ -299,7 +301,9 @@ for s in range(0,num_sim):
         # print("per_users_counter ",per_users_counter.values(),per_counter.values())
 
         # we add the current slot availability to the list
+        number_users_zoi = 0
         for z in scenario.zois_list:
+            number_users_zoi = zoi_users_counter[z]+rep_users_counter[z]
             if (zoi_users_counter[z] + rep_users_counter[z]) == 0:
                 av = 0
                 for m in z.content_list:
@@ -315,6 +319,7 @@ for s in range(0,num_sim):
 
         a = np.average(a_per_zoi.values())
         availabilities_list_per_slot.append(a)
+        nodes_in_zoi.append(number_users_zoi)
 
         # print("per zoi availability: ", a_per_zoi.values())
         # print("this availability: " , a)
@@ -347,6 +352,7 @@ for s in range(0,num_sim):
     dump.listOfAveragesPerSlot(availabilities_list_per_slot)
     dump.con0exchange()
     dump.availabilityPerContent(a_per_content)
+    dump.nodesZoiPerSlot(nodes_in_zoi)
     ########################## End of printing in simulation ##############################
     sys.stdout = orig_stdout
     f.close()

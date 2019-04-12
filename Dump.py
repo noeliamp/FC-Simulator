@@ -117,3 +117,9 @@ class Dump:
         f.write(str(self.scenario.count_useful)+"\n")
         f.close()
         
+
+     ####### Number of users in the ZOI per slot
+
+    def nodesZoiPerSlot(self,nodes_in_zoi):
+        with open(str(self.uid)+'/nodes-in-zoi-'+str(self.s)+'.json', 'w') as fp:
+            json.dump(nodes_in_zoi, fp)
