@@ -24,6 +24,8 @@ class User:
         self.y_list = []
         self.x_list.append(posX)
         self.y_list.append(posY)
+        self.speed_list = []
+        self.speed_list.append(0)
         self.x2 = 0
         self.y2 = 0
         self.xb = []
@@ -189,6 +191,39 @@ class User:
 
         # Check the new point zone of the user
         self.calculateZones()
+
+    # Method to read from the traces (stored in the scenario) each node's new position
+    # This method will make a node move in every new slot to the next point in the list
+    def readTraces(self,c):
+        items = self.scenario.tracesDic[str(self.id)].items()[c]
+        x = items[1][0]
+        y = items[1][1]
+        speed = items[1][2]
+        print("Leo x e y--> ", x, y)
+
+         # print("Next point: ", x, y)   
+        self.x_list.append(x)
+        self.y_list.append(y)
+        print("Lista de posiciones --> ", self.x_list, "\n", self.y_list)
+        self.speed_list.append(speed)
+
+    def extrapolateTraces(self,c):
+        #First we want to know the actual position which is stored in the nodes x_list and y_list
+        x_prev = self.x_list[-1]
+        y_prev = self.y_list[-1]
+        # We need to check the speed of the node at that period
+        items = self.scenario.tracesDic[str(self.id)].items()[c-1]
+        speed = items[1][2]
+
+        # Once we have the actual position, we look for the next position given by the traces
+        items = self.scenario.tracesDic[str(self.id)].items()[c]
+        time = items[0]
+        x = items[1][0]
+        y = items[1][1]
+        speed = items[1][2]
+
+        # speed = distance/time
+
 
     def userContact(self,c):
         # print ("My id is ", self.id, " Am I busy for this slot: ", self.busy)

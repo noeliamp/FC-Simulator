@@ -9,6 +9,7 @@ class Scenario:
     def __init__(self, radius_of_interest, radius_of_replication, radius_of_persistence, max_area, speed_distribution,pause_distribution,min_pause,max_pause,
     min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois):
         # print ("Creating new scenario...")
+        self.num_slots = 0
         self.square_radius_of_interest = radius_of_interest*radius_of_interest
         self.square_radius_of_replication = radius_of_replication*radius_of_replication
         self.square_radius_of_persistence = radius_of_persistence*radius_of_persistence
@@ -37,6 +38,7 @@ class Scenario:
         self.used_mbs_per_slot = []
         self.zois_list = []
         self.num_zois = num_zois
+        self.tracesDic = OrderedDict()
         self.attempts = 0
         self.count_0_exchange_conn = 0
         self.count_non_useful = 0
@@ -59,4 +61,53 @@ class Scenario:
               ", Max speed: ", self.max_speed, ", Max pause: ", self.max_pause, ", Min pause: ", self.max_pause, ", Delta: ", self.delta, 
               ", Radious of tx: ", self.radius_of_tx, ", Mbs: ", self.mbs, ", Used Mbs: ", self.used_mbs, 
               ", Channel rate: ", self.channel_rate, ", ZOIS: ", self.num_zois)
+
+
+    # Traces parser for each scenario, we parse the traces after the scenario creation, depending on which folder (map) and file (specific traces for a given seed in that map)
+    def parseTraces(self, folder, file):
+        f=open('traces/' + folder + '/'+ file +'.txt',"r")
+        print('traces/' + folder + '/'+ file +'.txt')
+        lines=f.readlines()
+        count = 0
+        for line in lines:
+            lp = line.split()
+            if "at" not in line: 
+                node = line[line.find("(")+1:line.find(")")]
+                if "X_" in line:
+                    x = float(lp[3]) - self.max_area
+                if "Y_" in line:
+                    y = float(lp[3]) - self.max_area
+                time = float(0)
+                speed = float(0)
+                count += 1
+            else:
+                count = 2
+                node = line[line.find("(")+1:line.find(")")]
+                time = float(lp[2])
+                x = float(lp[5]) - self.max_area
+                y = float(lp[6]) - self.max_area
+                speed = float(lp[7][:-1])
+
+            # We add the line info to each node dictionary
+            if count == 2:
+                count = 0
+                if node not in self.tracesDic:
+                    self.tracesDic[node] = OrderedDict()
+                self.tracesDic[node][time] = [x,y,speed]
+            # print("node ", node , "time", time , "x", x, "y",y, "speed", speed)
+        print(self.tracesDic)
+
+        min_len = 10000000
+        for k,v  in self.tracesDic.items():
+            if len(v)<min_len:
+                min_len = len(v)
+
+        print("MIN LEN TO USE--> ", min_len)
+        self.num_slots = min_len - 1
+           
+
+
+
+
+
 

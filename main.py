@@ -24,7 +24,9 @@ from  shutil import copyfile
 # print(type(sys.argv[1]), sys.argv[1])
 
 file_name = str(sys.argv[1])
+traces_file = str(sys.argv[2])
 print('input-'+ file_name + '.json')
+print('traces file number: ' + traces_file)
 
 t0 = time.time()
 uid = base64.urlsafe_b64encode(hashlib.md5(os.urandom(128)).digest())[:8]
@@ -34,7 +36,6 @@ with open('input-'+ file_name + '.json') as f:
 
 
 num_sim = data["num_sim"]                               # number of simulations
-num_slots = data["num_slots"]                           # number of repetitions in one simulation
 density_users = data["num_users"]
 density_zois = data["num_zois"]
 num_users_distribution = data["num_users_distribution"] # number of users distribution
@@ -64,6 +65,9 @@ flight_length_distribution = data["flight_length_distribution"]
 hand_shake = data["hand_shake"]
 num_contents = data["num_contents"]
 num_contents_node = data["num_contents_node"]
+traces_folder = data["traces_folder"]
+if traces_folder == "none":
+    num_slots = data["num_slots"]                           # number of repetitions in one simulation
 
 
 seed_list = [15482669,15482681,15482683,15482711,15482729,15482941,15482947,15482977,15482993,15483023,15483029,15483067,15483077,15483079,15483089,15483101,15483103,15482743,15482771,15482773,15482783,15482807,15482809,15482827,15482851,15482861,15482893,15482911,15482917,15482923]
@@ -84,6 +88,7 @@ rep_users_counter = OrderedDict()
 contacts_per_slot_per_user= OrderedDict()
 
 copyfile('input-'+ file_name + '.json', str(uid)+'/input-'+ file_name + '.json') # Copy the corresponding input file into the folder
+
 ################## Loop per simulation
 for s in range(0,num_sim):
     # seed = int(seed)
@@ -91,11 +96,6 @@ for s in range(0,num_sim):
     print("SIMULATION--> ", s)
     print("content size ", content_size)
     print("Max memory ", max_memory)
-
-    # progress bar
-    bar = progressbar.ProgressBar(maxval=num_slots, \
-        widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-    bar.start()
 
     orig_stdout = sys.stdout
     # f = open(os.devnull, 'w')
@@ -127,6 +127,17 @@ for s in range(0,num_sim):
     # CREATION OF SCENARIO With num_zois number of zois
     scenario = Scenario(radius_of_interest, radius_of_replication, radius_of_persistence, max_area,speed_distribution,pause_distribution,min_pause,max_pause, 
     min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution,hand_shake,num_zois)
+
+    ################## Parse traces in case we are using them
+    if traces_folder != "none":
+        scenario.parseTraces(traces_folder,traces_file)
+        num_slots = scenario.num_slots
+
+    
+    # progress bar
+    bar = progressbar.ProgressBar(maxval=num_slots, \
+        widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+    bar.start()
     
     # CREATION OF ONE CONTENT PER ZOI and initializing counters of nodes with and without content per ZOI
     for z in scenario.zois_list:
@@ -142,7 +153,17 @@ for s in range(0,num_sim):
 
     # CREATION OF USERS
     for i in range(0,num_users):
-        user = User(i,np.random.uniform(-max_area, max_area),np.random.uniform(-max_area, max_area), scenario,max_memory)
+        # Look for the initial position of each node only if we are using traces
+        if traces_folder != "none":
+            # print("Initial Position: ", scenario.tracesDic[str(i)].items()[0][1][0],scenario.tracesDic[str(i)].items()[0][1][1])
+            x = scenario.tracesDic[str(i)].items()[0][1][0]
+            y = scenario.tracesDic[str(i)].items()[0][1][1] 
+            user = User(i,x,y, scenario,max_memory)
+
+        # If we are not using traces, the initial position is random
+        else:
+            user = User(i,np.random.uniform(-max_area, max_area),np.random.uniform(-max_area, max_area), scenario,max_memory)
+
         # add the content to each user according to the ZOIs that they belong to
         for z in user.zones.keys():
             # to compute the first availability (if node is not out it will have the message for sure)
@@ -248,7 +269,10 @@ for s in range(0,num_sim):
         # Move every pedestrians once
         for j in range(0,num_users):
             scenario.usr_list[j].busy = False
-            scenario.usr_list[j].randomDirection()
+            if traces_folder == "none":
+                scenario.usr_list[j].randomDirection()
+            else:
+                scenario.usr_list[j].readTraces(c)
 
         # Run contacts for every slot after mobility.
         for k in range(0,num_users):
