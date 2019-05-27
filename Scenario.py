@@ -66,7 +66,6 @@ class Scenario:
     # Traces parser for each scenario, we parse the traces after the scenario creation, depending on which folder (map) and file (specific traces for a given seed in that map)
     def parseTraces(self, folder, file):
         f=open('traces/' + folder + '/'+ file +'.txt',"r")
-        print('traces/' + folder + '/'+ file +'.txt')
         lines=f.readlines()
         count = 0
         for line in lines:
@@ -95,14 +94,11 @@ class Scenario:
                     self.tracesDic[node] = OrderedDict()
                 self.tracesDic[node][time] = [x,y,speed]
             # print("node ", node , "time", time , "x", x, "y",y, "speed", speed)
-        print(self.tracesDic)
 
         min_len = 10000000
         for k,v  in self.tracesDic.items():
             if len(v)<min_len:
                 min_len = len(v)
-
-        print("MIN LEN TO USE--> ", min_len)
         self.num_slots = min_len - 1
            
 

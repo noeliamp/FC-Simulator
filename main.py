@@ -173,6 +173,7 @@ for s in range(0,num_sim):
                 zoi_users_counter[z] += 1
                 zoi_counter[z] += 1
                 for m in z.content_list:
+                    print("Al principio en interest", user.id)
                     m.counter += 1
             
             if user.zones[z] == "replication":
@@ -181,6 +182,7 @@ for s in range(0,num_sim):
                 rep_users_counter[z] += 1
                 rep_counter[z] += 1
                 for m in z.content_list:
+                    print("Al principio en replication", user.id)
                     m.counter += 1
             
             if user.zones[z] == "persistence":
@@ -228,7 +230,9 @@ for s in range(0,num_sim):
         else:
             av = (zoi_counter[z] + rep_counter[z])/(zoi_users_counter[z]+rep_users_counter[z])
             for m in z.content_list:
+                print("New Message...")
                 a_per_content[str(m.id)] = []
+                print(zoi_users_counter[z], rep_users_counter[z],"Counter: ",m.counter," Division: ",m.counter/(zoi_users_counter[z]+rep_users_counter[z]))
                 a_per_content[str(m.id)].append(m.counter/(zoi_users_counter[z]+rep_users_counter[z]))
 
         a_per_zoi[z] = av
@@ -271,8 +275,12 @@ for s in range(0,num_sim):
             scenario.usr_list[j].busy = False
             if traces_folder == "none":
                 scenario.usr_list[j].randomDirection()
+                # Check the new point zone of the user
+                sescenario.usr_list[j].calculateZones()
             else:
                 scenario.usr_list[j].readTraces(c)
+                # Check the new point zone of the user
+                scenario.usr_list[j].calculateZones()
 
         # Run contacts for every slot after mobility.
         for k in range(0,num_users):
@@ -307,6 +315,8 @@ for s in range(0,num_sim):
                 # Increment the content counter after moving and exchanging
                 for m in scenario.usr_list[j].messages_list:
                     if m.zoi == z:
+                        print("Yo estoy en la ZOI ", scenario.usr_list[j].id)
+                        print("Position ", scenario.usr_list[j].x_list[-1], scenario.usr_list[j].y_list[-1])
                         m.counter += 1
                 
                 # we are not counting the nodes that are out of every zoi
@@ -377,6 +387,7 @@ for s in range(0,num_sim):
     dump.con0exchange()
     dump.availabilityPerContent(a_per_content)
     dump.nodesZoiPerSlot(nodes_in_zoi)
+    dump.nodesPath()
     ########################## End of printing in simulation ##############################
     sys.stdout = orig_stdout
     f.close()

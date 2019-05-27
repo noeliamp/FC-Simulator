@@ -82,13 +82,17 @@ class User:
             d = np.power(self.x_list[-1]- z.x,2) + np.power(self.y_list[-1]- z.y,2)
             if d < z.scenario.square_radius_of_persistence:
                 self.zones[z] = "persistence"
+                # print("calculating in persisctence", self.id)
             if d < z.scenario.square_radius_of_replication:
                 self.zones[z] = "replication"
+                # print("calculating in replication", self.id)
             if d < z.scenario.square_radius_of_interest:
                 self.zones[z] = "interest"
+                # print("calculating in interes", self.id)
             if d > z.scenario.square_radius_of_persistence:
                 # We do not keep information about the zones where the node is out
                 # if self.ongoing_conn == False:
+                print("Im deleting my messages ", self.id)
                 self.deleteMessages(z)
 
     def deleteMessages(self,z):
@@ -188,9 +192,9 @@ class User:
                 self.m = 1
                 # self.isPaused = True
 
-
+        # THIS SHOULD BE CALLED OUTSIDE!
         # Check the new point zone of the user
-        self.calculateZones()
+        # self.calculateZones()
 
     # Method to read from the traces (stored in the scenario) each node's new position
     # This method will make a node move in every new slot to the next point in the list
@@ -199,23 +203,23 @@ class User:
         x = items[1][0]
         y = items[1][1]
         speed = items[1][2]
-        print("Leo x e y--> ", x, y)
 
          # print("Next point: ", x, y)   
         self.x_list.append(x)
         self.y_list.append(y)
-        print("Lista de posiciones --> ", self.x_list, "\n", self.y_list)
         self.speed_list.append(speed)
+
+        # THIS SHOULD BE CALLED OUTSIDE!
+        # Check the new point zone of the user
+        # self.calculateZones()
 
     def extrapolateTraces(self,c):
         #First we want to know the actual position which is stored in the nodes x_list and y_list
         x_prev = self.x_list[-1]
         y_prev = self.y_list[-1]
-        # We need to check the speed of the node at that period
-        items = self.scenario.tracesDic[str(self.id)].items()[c-1]
-        speed = items[1][2]
 
         # Once we have the actual position, we look for the next position given by the traces
+        # and the speed at which the node will move
         items = self.scenario.tracesDic[str(self.id)].items()[c]
         time = items[0]
         x = items[1][0]
