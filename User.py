@@ -92,7 +92,6 @@ class User:
             if d > z.scenario.square_radius_of_persistence:
                 # We do not keep information about the zones where the node is out
                 # if self.ongoing_conn == False:
-                print("Im deleting my messages ", self.id)
                 self.deleteMessages(z)
 
     def deleteMessages(self,z):
@@ -183,8 +182,11 @@ class User:
             
                 # print("Id: ", self.id ,"x: ",x, " y: ", y)
 
-                self.x_list[-1]=x
-                self.y_list[-1]=y
+                # Use only when we don't want to store every position in the list but only the current position. We are now 
+                # storing everything in the previous 2 lines of code.
+
+                # self.x_list[-1]=x
+                # self.y_list[-1]=y
                 
 
             if self.m > self.flight_length:
@@ -192,41 +194,24 @@ class User:
                 self.m = 1
                 # self.isPaused = True
 
-        # THIS SHOULD BE CALLED OUTSIDE!
-        # Check the new point zone of the user
-        # self.calculateZones()
-
     # Method to read from the traces (stored in the scenario) each node's new position
     # This method will make a node move in every new slot to the next point in the list
     def readTraces(self,c):
-        items = self.scenario.tracesDic[str(self.id)].items()[c]
-        x = items[1][0]
-        y = items[1][1]
-        speed = items[1][2]
+        if c in self.scenario.tracesDic[str(self.id)]:
+            items = self.scenario.tracesDic[str(self.id)].items()[c]
+            x = items[1][0]
+            y = items[1][1]
+            speed = items[1][2]
 
-         # print("Next point: ", x, y)   
-        self.x_list.append(x)
-        self.y_list.append(y)
-        self.speed_list.append(speed)
+            # print("Next point: ", x, y)   
+            self.x_list.append(x)
+            self.y_list.append(y)
+            self.speed_list.append(speed)
 
-        # THIS SHOULD BE CALLED OUTSIDE!
-        # Check the new point zone of the user
-        # self.calculateZones()
-
-    def extrapolateTraces(self,c):
-        #First we want to know the actual position which is stored in the nodes x_list and y_list
-        x_prev = self.x_list[-1]
-        y_prev = self.y_list[-1]
-
-        # Once we have the actual position, we look for the next position given by the traces
-        # and the speed at which the node will move
-        items = self.scenario.tracesDic[str(self.id)].items()[c]
-        time = items[0]
-        x = items[1][0]
-        y = items[1][1]
-        speed = items[1][2]
-
-        # speed = distance/time
+        else:
+            self.x_list.append(self.x_list[-1])
+            self.y_list.append(self.y_list[-1])
+            self.speed_list.append(0)
 
 
     def userContact(self,c):
@@ -347,8 +332,6 @@ class User:
                     # print("Attempts--- ", self.scenario.attempts)
                     self.connection_duration += 1
                     neighbour.connection_duration +=  1
-                    # print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
-                    # print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
                     self.exchange_size = 0
                     neighbour.exchange_size = 0
                     self.exchange_list = []
@@ -561,12 +544,17 @@ class User:
                 #########################################################################################################
 
             # Now we exchange the db based on the already exchanged bytes of messages
-            # print("LEEEEEEEN--> ", len(self.counter_list),len(neighbour.counter_list), len(self.exchange_list) , len(neighbour.exchange_list) )
+            if (len(self.counter_list) != len(self.exchange_list)):
+                print("LEEEEEEEN--> ", len(self.counter_list),len(neighbour.counter_list), len(self.exchange_list) , len(neighbour.exchange_list) )
+                print("Counter: ", self.counter_list)
+                print("Exchange: ", self.exchange_list)
+
             if len(self.exchange_list) > 0:
-                for i in range(0,len(self.counter_list)):
+                for i in range(0,len(self.counter_list)): 
                     # print(i)
                     # print(self.counter_list[i], self.exchange_counter, self.exchange_list[i] not in neighbour.messages_list, len(self.exchange_list)>0)
-                    if self.counter_list[i] <= self.exchange_counter and self.exchange_list[i] not in neighbour.messages_list:
+                    if (self.counter_list[i] <= self.exchange_counter):
+                        if (self.exchange_list[i] not in neighbour.messages_list):
                             # print("Adding message to neighbour DB: ", self.exchange_list[i].size, self.connection_duration,neighbour.connection_duration)
                             neighbour.messages_list.append(self.exchange_list[i])
                     if(self.counter_list[i] == self.exchange_counter):
@@ -576,7 +564,8 @@ class User:
                 for j in range(0,len(neighbour.counter_list)):
                     # print(j)
                     # print(neighbour.counter_list[j], neighbour.exchange_counter, neighbour.exchange_list[j] not in self.messages_list,len(neighbour.exchange_list)>0)
-                    if neighbour.counter_list[j] <= neighbour.exchange_counter and (neighbour.exchange_list[j] not in self.messages_list):
+                    if (neighbour.counter_list[j] <= neighbour.exchange_counter): 
+                        if (neighbour.exchange_list[j] not in self.messages_list):
                             # print("Adding message to my DB: ", neighbour.exchange_list[j].size, self.connection_duration,neighbour.connection_duration)
                             self.messages_list.append(neighbour.exchange_list[j])
                     if(neighbour.counter_list[j] == neighbour.exchange_counter):

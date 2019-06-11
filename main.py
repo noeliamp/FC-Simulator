@@ -53,12 +53,10 @@ speed_distribution = data["speed_distribution"]
 pause_distribution = data["pause_distribution"]
 delta = data["delta"]                                   # time per slot
 channel_rate = data["channel_rate"]
-max_memory = data["max_memory"]                         # max memory allowed per user device
-if max_memory == "inf":
-    max_memory = np.inf
 max_message_size = data["max_message_size"]
 min_message_size = data["min_message_size"]
 content_size = np.random.uniform(max_message_size, min_message_size)
+max_memory = data["num_contents_node"] * content_size                        # max memory allowed per user device
 min_flight_length = data["min_flight_length"]
 max_flight_length = data["max_flight_length"]
 flight_length_distribution = data["flight_length_distribution"]
@@ -173,7 +171,6 @@ for s in range(0,num_sim):
                 zoi_users_counter[z] += 1
                 zoi_counter[z] += 1
                 for m in z.content_list:
-                    print("Al principio en interest", user.id)
                     m.counter += 1
             
             if user.zones[z] == "replication":
@@ -182,7 +179,6 @@ for s in range(0,num_sim):
                 rep_users_counter[z] += 1
                 rep_counter[z] += 1
                 for m in z.content_list:
-                    print("Al principio en replication", user.id)
                     m.counter += 1
             
             if user.zones[z] == "persistence":
@@ -230,9 +226,9 @@ for s in range(0,num_sim):
         else:
             av = (zoi_counter[z] + rep_counter[z])/(zoi_users_counter[z]+rep_users_counter[z])
             for m in z.content_list:
-                print("New Message...")
+                # print("New Message...")
                 a_per_content[str(m.id)] = []
-                print(zoi_users_counter[z], rep_users_counter[z],"Counter: ",m.counter," Division: ",m.counter/(zoi_users_counter[z]+rep_users_counter[z]))
+                # print(zoi_users_counter[z], rep_users_counter[z],"Counter: ",m.counter," Division: ",m.counter/(zoi_users_counter[z]+rep_users_counter[z]))
                 a_per_content[str(m.id)].append(m.counter/(zoi_users_counter[z]+rep_users_counter[z]))
 
         a_per_zoi[z] = av
@@ -249,7 +245,7 @@ for s in range(0,num_sim):
     
     ################## Loop per slot into a simulation
     while c < num_slots and a > 0:
-        print("SLOT NUMBER: ", c)
+        # print("SLOT NUMBER: ", c)
         for z in scenario.zois_list:
             zoi_counter[z] = 0
             per_counter[z] = 0
@@ -275,12 +271,12 @@ for s in range(0,num_sim):
             scenario.usr_list[j].busy = False
             if traces_folder == "none":
                 scenario.usr_list[j].randomDirection()
-                # Check the new point zone of the user
-                sescenario.usr_list[j].calculateZones()
+               
             else:
                 scenario.usr_list[j].readTraces(c)
-                # Check the new point zone of the user
-                scenario.usr_list[j].calculateZones()
+                
+            # Check the new point zone of the user
+            scenario.usr_list[j].calculateZones()
 
         # Run contacts for every slot after mobility.
         for k in range(0,num_users):
@@ -315,8 +311,8 @@ for s in range(0,num_sim):
                 # Increment the content counter after moving and exchanging
                 for m in scenario.usr_list[j].messages_list:
                     if m.zoi == z:
-                        print("Yo estoy en la ZOI ", scenario.usr_list[j].id)
-                        print("Position ", scenario.usr_list[j].x_list[-1], scenario.usr_list[j].y_list[-1])
+                        # print("Yo estoy en la ZOI ", scenario.usr_list[j].id)
+                        # print("Position ", scenario.usr_list[j].x_list[-1], scenario.usr_list[j].y_list[-1])
                         m.counter += 1
                 
                 # we are not counting the nodes that are out of every zoi

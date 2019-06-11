@@ -65,7 +65,7 @@ class Scenario:
 
     # Traces parser for each scenario, we parse the traces after the scenario creation, depending on which folder (map) and file (specific traces for a given seed in that map)
     def parseTraces(self, folder, file):
-        f=open('traces/' + folder + '/'+ file +'.txt',"r")
+        f=open('traces/' + folder + '/'+ file +'_MovementNs2Report.txt',"r")
         lines=f.readlines()
         count = 0
         for line in lines:
@@ -92,7 +92,10 @@ class Scenario:
                 count = 0
                 if node not in self.tracesDic:
                     self.tracesDic[node] = OrderedDict()
-                self.tracesDic[node][time] = [x,y,speed]
+                    
+                # Stop storing positions if we already have 10000 slots     
+                if len(self.tracesDic[node]) <= 10000:
+                    self.tracesDic[node][time] = [x,y,speed]
             # print("node ", node , "time", time , "x", x, "y",y, "speed", speed)
 
         min_len = 10000000
@@ -100,6 +103,7 @@ class Scenario:
             if len(v)<min_len:
                 min_len = len(v)
         self.num_slots = min_len - 1
+        print("shortest length of nodes position ",self.num_slots)
            
 
 
