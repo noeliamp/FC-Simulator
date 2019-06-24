@@ -1,13 +1,14 @@
 from Zoi import Zoi
 import numpy as np
 from collections import OrderedDict
+import re
 
 
 class Scenario:
     'Common base class for all scenarios'
 
     def __init__(self, radius_of_interest, radius_of_replication, radius_of_persistence, max_area, speed_distribution,pause_distribution,min_pause,max_pause,
-    min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois):
+    min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois,traces_folder):
         # print ("Creating new scenario...")
         self.num_slots = 0
         self.square_radius_of_interest = radius_of_interest*radius_of_interest
@@ -44,14 +45,40 @@ class Scenario:
         self.count_non_useful = 0
         self.count_useful = 0
         self.connection_duration_list = OrderedDict()
+        self.list_of_tuples_pos = []
+
+        # If we only define 1 zoi we assume it is going to be located in the center of the scenario
         if self.num_zois == 1:
             zoi = Zoi(0,0,0,self)
             self.zois_list.append(zoi)
+
+        # If we define more than one zoi, we should know if they are going to be based on map points or random uniform distribution
         if self.num_zois > 1:
-            for i in range(0,self.num_zois):
-                zoi = Zoi(i, np.random.uniform(-self.max_area + self.radius_of_persistence, self.max_area - self.radius_of_persistence),
-                np.random.uniform(-self.max_area + self.radius_of_persistence, self.max_area - self.radius_of_persistence),self)
-                self.zois_list.append(zoi)
+            # In case we are running simulations based on maps points
+            if traces_folder != "none":
+                f=open('traces/POIS/POI.wkt',"r")
+                lines=f.readlines()
+                # First we read the points from the file
+                for line in lines:
+                    if line.startswith("POINT"):
+                        num = re.findall(r'\d+(?:\.\d*)?', line)
+                        numbers = [] 
+                        numbers.append(float(num[0]))
+                        numbers.append(float(num[1]))
+
+                        self.list_of_tuples_pos.append(numbers)
+                print('POINTS ', self.list_of_tuples_pos)
+                # Second, we create the zois according to the points
+                for i in range(0,len(self.list_of_tuples_pos)):
+                    zoi = Zoi(i, self.list_of_tuples_pos[i][0],self.list_of_tuples_pos[i][1],self)
+                    self.zois_list.append(zoi)
+
+            # In case we are running simulations with zois in random positions within the scenario
+            else:
+                for i in range(0,self.num_zois):
+                    zoi = Zoi(i, np.random.uniform(-self.max_area + self.radius_of_persistence, self.max_area - self.radius_of_persistence),
+                    np.random.uniform(-self.max_area + self.radius_of_persistence, self.max_area - self.radius_of_persistence),self)
+                    self.zois_list.append(zoi)
 
         # self.displayScenario()
 
@@ -73,9 +100,9 @@ class Scenario:
             if "at" not in line: 
                 node = line[line.find("(")+1:line.find(")")]
                 if "X_" in line:
-                    x = float(lp[3]) - self.max_area
+                    x = float(lp[3])
                 if "Y_" in line:
-                    y = float(lp[3]) - self.max_area
+                    y = float(lp[3])
                 time = float(0)
                 speed = float(0)
                 count += 1
@@ -83,8 +110,8 @@ class Scenario:
                 count = 2
                 node = line[line.find("(")+1:line.find(")")]
                 time = float(lp[2])
-                x = float(lp[5]) - self.max_area
-                y = float(lp[6]) - self.max_area
+                x = float(lp[5])
+                y = float(lp[6])
                 speed = float(lp[7][:-1])
 
             # We add the line info to each node dictionary

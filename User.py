@@ -64,7 +64,7 @@ class User:
         self.connection_duration = 0
         self.contacts_per_slot = OrderedDict()
         self.calculateZones()
-        # self.displayUser()
+        self.displayUser()
 
     
     def displayUser(self):
@@ -89,10 +89,10 @@ class User:
             if d < z.scenario.square_radius_of_interest:
                 self.zones[z] = "interest"
                 # print("calculating in interes", self.id)
-            if d > z.scenario.square_radius_of_persistence:
+            # if d > z.scenario.square_radius_of_persistence:
                 # We do not keep information about the zones where the node is out
                 # if self.ongoing_conn == False:
-                self.deleteMessages(z)
+                # self.deleteMessages(z)
 
     def deleteMessages(self,z):
         # We remove the messages belonging to this zone in case the node was previously in the zone (the zone existed before)    
@@ -346,7 +346,7 @@ class User:
                     # First, check the messages missing in the peers devices and add them to the exchange list of messages of every peer
                     for m in self.messages_list:
                         # print("Neighbour does not have message? ", m not in neighbour.messages_list, m.size, len(self.messages_list))
-                        if m not in neighbour.messages_list and m.zoi in neighbour.zones.keys():
+                        if m not in neighbour.messages_list: # and m.zoi in neighbour.zones.keys(): # Does not work for connected zois
                             self.exchange_list.append(m)
                             self.exchange_size = self.exchange_size + m.size
                             if len(self.counter_list) == 0:
@@ -390,7 +390,7 @@ class User:
                         
                     
     # Method to check which DB is smaller and start exchanging it. 
-    # At this point We have the messages to be exchange (exchange_list) and the total list sizes (exchange_size).
+    # At this point We have the messages to be exchange (exchange_list) and the total list of sizes (exchange_size).
 
     def exchangeData(self,neighbour):
         self.busy = True

@@ -63,6 +63,8 @@ flight_length_distribution = data["flight_length_distribution"]
 hand_shake = data["hand_shake"]
 num_contents = data["num_contents"]
 num_contents_node = data["num_contents_node"]
+content_generation_time = data["content_generation_time"]
+content_generation_users = data["content_generation_users"]
 traces_folder = data["traces_folder"]
 if traces_folder == "none":
     num_slots = data["num_slots"]                           # number of repetitions in one simulation
@@ -124,7 +126,7 @@ for s in range(0,num_sim):
 
     # CREATION OF SCENARIO With num_zois number of zois
     scenario = Scenario(radius_of_interest, radius_of_replication, radius_of_persistence, max_area,speed_distribution,pause_distribution,min_pause,max_pause, 
-    min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution,hand_shake,num_zois)
+    min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution,hand_shake,num_zois, traces_folder)
 
     ################## Parse traces in case we are using them
     if traces_folder != "none":
@@ -138,16 +140,20 @@ for s in range(0,num_sim):
     bar.start()
     
     # CREATION OF ONE CONTENT PER ZOI and initializing counters of nodes with and without content per ZOI
-    for z in scenario.zois_list:
-        for m in range(0,num_contents):
-            msg = Message(uuid.uuid4(),content_size,z)
-            z.content_list.append(msg)
-        zoi_counter[z]= 0
-        per_counter[z] = 0
-        rep_counter[z]= 0
-        zoi_users_counter[z] = 0
-        per_users_counter[z] = 0
-        rep_users_counter[z] = 0   
+    for m in range(0,num_contents):
+        for z in scenario.zois_list:
+            msg = Message(uuid.uuid4(),content_size,z,scenario)
+            # z.content_list.append(msg)
+            # Each msg has a belonging zoi but to measure availability in all zois we need to include each msg in every zoi
+            for o in scenario.zois_list:
+                o.content_list.append(msg)
+
+            zoi_counter[z.id]= 0
+            per_counter[z.id] = 0
+            rep_counter[z.id]= 0
+            zoi_users_counter[z.id] = 0
+            per_users_counter[z.id] = 0
+            rep_users_counter[z.id] = 0   
 
     # CREATION OF USERS
     for i in range(0,num_users):
@@ -168,22 +174,22 @@ for s in range(0,num_sim):
             if user.zones[z] == "interest":
                 np.random.shuffle(z.content_list)
                 user.messages_list.extend(z.content_list[:num_contents_node])
-                zoi_users_counter[z] += 1
-                zoi_counter[z] += 1
+                zoi_users_counter[z.id] += 1
+                zoi_counter[z.id] += 1
                 for m in z.content_list:
-                    m.counter += 1
+                    m.counter[z.id] += 1
             
             if user.zones[z] == "replication":
                 np.random.shuffle(z.content_list)
                 user.messages_list.extend(z.content_list[:num_contents_node])
-                rep_users_counter[z] += 1
-                rep_counter[z] += 1
+                rep_users_counter[z.id] += 1
+                rep_counter[z.id] += 1
                 for m in z.content_list:
-                    m.counter += 1
+                    m.counter[z.id] += 1
             
             if user.zones[z] == "persistence":
                 # user.messages_list.extend(z.content_list)
-                per_users_counter[z] += 1
+                per_users_counter[z.id] += 1
                 # per_counter += 1
             
             # we are not counting nodes that are out of every zoi  
@@ -216,23 +222,23 @@ for s in range(0,num_sim):
     # print("zoi_users_counter ",zoi_users_counter.values(),zoi_counter.values())
     # print("rep_users_counter ",rep_users_counter.values(),rep_counter.values())
     # print("per_users_counter ",per_users_counter.values(),per_counter.values())
-    # Computing availability per ZOI and per CONTENT
+    # Computing availability per CONTENT per ZOI
     for z in scenario.zois_list:
-        if (zoi_users_counter[z]+rep_users_counter[z]) == 0:
+        if (zoi_users_counter[z.id]+rep_users_counter[z.id]) == 0:
             av = 0
             for m in z.content_list:
-                a_per_content[str(m.id)] = []
-                a_per_content[str(m.id)].append(0)
+                a_per_content[str(m.id)] = OrderedDict()
+                a_per_content[str(m.id)][z.id] = []
+                a_per_content[str(m.id)][z.id].append(0)
         else:
-            av = (zoi_counter[z] + rep_counter[z])/(zoi_users_counter[z]+rep_users_counter[z])
+            av = (zoi_counter[z.id] + rep_counter[z.id])/(zoi_users_counter[z.id]+rep_users_counter[z.id])
             for m in z.content_list:
-                # print("New Message...")
-                a_per_content[str(m.id)] = []
-                # print(zoi_users_counter[z], rep_users_counter[z],"Counter: ",m.counter," Division: ",m.counter/(zoi_users_counter[z]+rep_users_counter[z]))
-                a_per_content[str(m.id)].append(m.counter/(zoi_users_counter[z]+rep_users_counter[z]))
+                a_per_content[str(m.id)] = OrderedDict()
+                a_per_content[str(m.id)][z.id] = []
+                a_per_content[str(m.id)][z.id].append(m.counter[z.id]/(zoi_users_counter[z.id]+rep_users_counter[z.id]))
 
-        a_per_zoi[z] = av
-        availability_per_zoi[z] = []
+        a_per_zoi[z.id] = av
+        availability_per_zoi[z.id] = []
 
     a = np.average(a_per_zoi.values())
 
@@ -240,22 +246,22 @@ for s in range(0,num_sim):
     # print("this availability: " , a)
 
     availabilities_list_per_slot = []
-    nodes_in_zoi = []
+    nodes_in_zoi = OrderedDict()
     c = 0
     
     ################## Loop per slot into a simulation
     while c < num_slots and a > 0:
         # print("SLOT NUMBER: ", c)
         for z in scenario.zois_list:
-            zoi_counter[z] = 0
-            per_counter[z] = 0
-            rep_counter[z]= 0
-            zoi_users_counter[z] = 0
-            per_users_counter[z] = 0
-            rep_users_counter[z] = 0
+            zoi_counter[z.id] = 0
+            per_counter[z.id] = 0
+            rep_counter[z.id]= 0
+            zoi_users_counter[z.id] = 0
+            per_users_counter[z.id] = 0
+            rep_users_counter[z.id] = 0
             # Restart the counter for content availability
             for m in z.content_list:
-                m.counter = 0
+                m.counter[z.id] = 0
 
         bar.update(c+1)
         slots.append(c)
@@ -264,14 +270,36 @@ for s in range(0,num_sim):
         # shuffle users lists
         np.random.shuffle(scenario.usr_list)
 
+        # Creating contents if required at the specific time slot
+        if content_generation_time != "none":
+            print("not creating content")
+            if c % content_generation_time == 0:
+                userCounter=0
+                for u in scenario.usr_list:
+                    if len(u.zones) > 0:
+                        rndZoi = np.random.randint(len(u.zones))
+                        print("User id ", u.id)
+                        print("random zone ", rndZoi, "from len zones ", len(u.zones))
+                        for z in u.zones:
+                            if z.id == rndZoi:
+                                print("zoiii ", z.id)
+                                msg = Message(uuid.uuid4(),content_size,z,scenario)
+                                print("User msg list ", len(u.messages_list))
+                                u.messages_list.append(msg)           
+                                print("User msg list ", len(u.messages_list))
+                                z.content_list.append(msg)
+                                userCounter+=1
+                                if userCounter == content_generation_users:
+                                    break
+
+
         # Run mobility for every slot           
         # Nobody should be BUSY at the beggining of a slot (busy means that the node has had a connection already in the current slot, so it cannot have another one)
-        # Move every pedestrians once
+        # Move every pedestrian once
         for j in range(0,num_users):
             scenario.usr_list[j].busy = False
             if traces_folder == "none":
                 scenario.usr_list[j].randomDirection()
-               
             else:
                 scenario.usr_list[j].readTraces(c)
                 
@@ -291,40 +319,40 @@ for s in range(0,num_sim):
         for j in range(0,num_users):
             for z in scenario.usr_list[j].zones.keys():
                 if scenario.usr_list[j].zones[z] == "interest":
-                    zoi_users_counter[z] += 1
+                    zoi_users_counter[z.id] += 1
                     if len(scenario.usr_list[j].messages_list)>0:
                         if any(x.zoi == z for x in scenario.usr_list[j].messages_list):
-                            zoi_counter[z] += 1
+                            zoi_counter[z.id] += 1
                 
                 if scenario.usr_list[j].zones[z] == "replication":
-                    rep_users_counter[z] += 1
+                    rep_users_counter[z.id] += 1
                     if len(scenario.usr_list[j].messages_list)>0:
                         if any(x.zoi == z for x in scenario.usr_list[j].messages_list):
-                            rep_counter[z] += 1
+                            rep_counter[z.id] += 1
                 
                 if scenario.usr_list[j].zones[z] == "persistence":
-                    per_users_counter[z] += 1
+                    per_users_counter[z.id] += 1
                     if len(scenario.usr_list[j].messages_list)>0:
                         if any(x.zoi == z for x in scenario.usr_list[j].messages_list):
-                            per_counter[z] += 1
+                            per_counter[z.id] += 1
 
                 # Increment the content counter after moving and exchanging
                 for m in scenario.usr_list[j].messages_list:
-                    if m.zoi == z:
+                    if m in z.content_list:
                         # print("Yo estoy en la ZOI ", scenario.usr_list[j].id)
                         # print("Position ", scenario.usr_list[j].x_list[-1], scenario.usr_list[j].y_list[-1])
-                        m.counter += 1
+                        m.counter[z.id] += 1
                 
                 # we are not counting the nodes that are out of every zoi
 
         ################################## Dump data per slot in a file ############################################
         
-        zoi.append(zoi_counter[z])
-        rep.append(rep_counter[z])
-        per.append(per_counter[z])
-        zoi_users.append(zoi_users_counter[z])
-        rep_users.append(rep_users_counter[z])
-        per_users.append(per_users_counter[z])
+        zoi.append(zoi_counter[z.id])
+        rep.append(rep_counter[z.id])
+        per.append(per_counter[z.id])
+        zoi_users.append(zoi_users_counter[z.id])
+        rep_users.append(rep_users_counter[z.id])
+        per_users.append(per_users_counter[z.id])
 
         # print("zoi_users_counter ",zoi_users_counter.values(),zoi_counter.values())
         # print("rep_users_counter ",rep_users_counter.values(),rep_counter.values())
@@ -333,23 +361,33 @@ for s in range(0,num_sim):
         # we add the current slot availability to the list
         number_users_zoi = 0
         for z in scenario.zois_list:
-            number_users_zoi = zoi_users_counter[z]+rep_users_counter[z]
-            if (zoi_users_counter[z] + rep_users_counter[z]) == 0:
+            number_users_zoi = zoi_users_counter[z.id]+rep_users_counter[z.id]
+            if (zoi_users_counter[z.id] + rep_users_counter[z.id]) == 0:
                 av = 0
                 for m in z.content_list:
-                    a_per_content[str(m.id)].append(0)
+                    if z.id not in a_per_content[str(m.id)]:
+                        print("entro 1")
+                        a_per_content[str(m.id)][z.id] = []
+                    a_per_content[str(m.id)][z.id].append(0)
 
             else:
-                av = (zoi_counter[z] + rep_counter[z])/(zoi_users_counter[z]+rep_users_counter[z])
+                av = (zoi_counter[z.id] + rep_counter[z.id])/(zoi_users_counter[z.id]+rep_users_counter[z.id])
                 for m in z.content_list:
-                    a_per_content[str(m.id)].append(m.counter/(zoi_users_counter[z]+rep_users_counter[z]))
+                    if z.id not in a_per_content[str(m.id)]:
+                        a_per_content[str(m.id)][z.id] = []
+                        # fill the availability list with 0 to match the slot in which the content was created
+                        a_per_content[str(m.id)][z.id][:c] = [0] * c
+                    a_per_content[str(m.id)][z.id].append(m.counter[z.id]/(zoi_users_counter[z.id]+rep_users_counter[z.id]))
 
-            a_per_zoi[z] = av
-            availability_per_zoi[z].append(av)
+            a_per_zoi[z.id] = av
+            availability_per_zoi[z.id].append(av)
+
+            if z.id not in nodes_in_zoi:
+                nodes_in_zoi[z.id] = []
+            nodes_in_zoi[z.id].append(number_users_zoi)
 
         a = np.average(a_per_zoi.values())
         availabilities_list_per_slot.append(a)
-        nodes_in_zoi.append(number_users_zoi)
 
         # print("per zoi availability: ", a_per_zoi.values())
         # print("this availability: " , a)
