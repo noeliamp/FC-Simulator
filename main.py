@@ -66,8 +66,8 @@ num_contents_node = data["num_contents_node"]
 content_generation_time = data["content_generation_time"]
 content_generation_users = data["content_generation_users"]
 traces_folder = data["traces_folder"]
-if traces_folder == "none":
-    num_slots = data["num_slots"]                           # number of repetitions in one simulation
+num_slots = data["num_slots"]                           # number of repetitions in one simulation
+max_time_elapsed = data["max_time_elapsed"]
 
 
 seed_list = [15482669,15482681,15482683,15482711,15482729,15482941,15482947,15482977,15482993,15483023,15483029,15483067,15483077,15483079,15483089,15483101,15483103,15482743,15482771,15482773,15482783,15482807,15482809,15482827,15482851,15482861,15482893,15482911,15482917,15482923]
@@ -123,13 +123,11 @@ for s in range(0,num_sim):
 
     # CREATION OF SCENARIO With num_zois number of zois
     scenario = Scenario(radius_of_interest, radius_of_replication, radius_of_persistence, max_area,speed_distribution,pause_distribution,min_pause,max_pause, 
-    min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution,hand_shake,num_zois, traces_folder)
+    min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution,hand_shake,num_zois, traces_folder,num_slots)
 
     ################## Parse traces in case we are using them
     if traces_folder != "none":
         scenario.parseTraces(traces_folder,traces_file)
-        num_slots = scenario.num_slots
-
     
     # progress bar
     bar = progressbar.ProgressBar(maxval=num_slots, \
@@ -156,11 +154,13 @@ for s in range(0,num_sim):
             # print("Initial Position: ", scenario.tracesDic[str(i)].items()[0][1][0],scenario.tracesDic[str(i)].items()[0][1][1])
             x = scenario.tracesDic[str(i)].items()[0][1][0]
             y = scenario.tracesDic[str(i)].items()[0][1][1] 
-            user = User(i,x,y, scenario,max_memory)
+            user = User(i,x,y, scenario,max_memory,max_time_elapsed)
+            user.predict(num_slots)
+            
 
         # If we are not using traces, the initial position is random
         else:
-            user = User(i,np.random.uniform(-max_area, max_area),np.random.uniform(-max_area, max_area), scenario,max_memory)
+            user = User(i,np.random.uniform(-max_area, max_area),np.random.uniform(-max_area, max_area), scenario,max_memory,max_time_elapsed)
 
         # add the content to each user according to the ZOIs that they belong to
         for z in user.zones.keys():
@@ -284,14 +284,15 @@ for s in range(0,num_sim):
                 scenario.usr_list[j].readTraces(c)
                 
             # Check the new point zone of the user
-            scenario.usr_list[j].calculateZones()
+            scenario.usr_list[j].calculateZones(c)
+
 
         # Run contacts for every slot after mobility.
         for k in range(0,num_users):
             # run users contact
             scenario.usr_list[k].hand_shake = hand_shake/delta
             scenario.usr_list[k].contacts_per_slot[c] = []
-            scenario.usr_list[k].userContact(c)
+            scenario.usr_list[k].userContactOut(c)
         
         attempts.append(scenario.attempts)
 
@@ -371,7 +372,8 @@ for s in range(0,num_sim):
     dump.userLastPosition()
     # dump.statisticsList(slots, zoi_users, rep_users, per_users, attempts)
     dump.connectionDurationAndMore(contacts_per_slot_per_user)
-    dump.availabilityPerSimulation(np.average(availabilities_list_per_slot))
+    # if sum(availabilities_list_per_slot) > 0:
+    #     dump.availabilityPerSimulation(np.average(availabilities_list_per_slot))
     dump.listOfAveragesPerSlot(availabilities_list_per_slot)
     dump.con0exchange()
     dump.availabilityPerContent(a_per_content)

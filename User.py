@@ -7,7 +7,7 @@ import sys
 class User:
     'Common base class for all users'
 
-    def __init__(self, id, posX, posY, scenario, max_memory):
+    def __init__(self, id, posX, posY, scenario, max_memory,max_time_elapsed):
 
         # print ("Creating new user...")
         self.id = id
@@ -61,9 +61,13 @@ class User:
         self.vy = 0
         self.x_origin = 0
         self.y_origin = 0
+        self.drop = False
+        self.time_elapsed = OrderedDict()
         self.connection_duration = 0
+        self.max_time_elapsed = max_time_elapsed
+        self.myFuture = OrderedDict()
         self.contacts_per_slot = OrderedDict()
-        self.calculateZones()
+        self.calculateZones(0)
         self.displayUser()
 
     
@@ -75,26 +79,35 @@ class User:
             print("ZOI ID: ", z.id)
             print("Zone: ", self.zones[z])
     
-    def calculateZones(self):
+    def calculateZones(self,c):
         self.canIexchange = False
         self.zones = OrderedDict()
+
         for z in self.scenario.zois_list:
             d = np.power(self.x_list[-1]- z.x,2) + np.power(self.y_list[-1]- z.y,2)
             if d < z.scenario.square_radius_of_persistence:
                 self.zones[z] = "persistence"
+                self.time_elapsed[z.id] = 0
                 # print("calculating in persisctence", self.id)
             if d < z.scenario.square_radius_of_replication:
                 self.zones[z] = "replication"
+                self.time_elapsed[z.id] = 0
                 # print("calculating in replication", self.id)
             if d < z.scenario.square_radius_of_interest:
                 self.zones[z] = "interest"
+                self.time_elapsed[z.id] = 0
                 # print("calculating in interest", self.id)
             if d > z.scenario.square_radius_of_persistence:
                 if self.ongoing_conn == False: 
                     # We do not keep information about the zones where the node is out
-                    rn = np.random.uniform(0,1)
-                    if rn < 0.5:
+                    if z.id in self.time_elapsed and self.time_elapsed[z.id] == self.max_time_elapsed and self.shouldDrop(c,z):
                         self.deleteMessages(z)
+                    else:
+                        if z.id in self.time_elapsed:
+                            self.time_elapsed[z.id] += 1
+                        else:
+                            self.time_elapsed[z.id] = 1
+                            
 
     def deleteMessages(self,z):
         # We remove the messages belonging to this zone in case the node was previously in the zone (the zone existed before)
@@ -108,7 +121,6 @@ class User:
                 if m in self.exchange_list:
                     self.exchange_list.remove(m)
                     self.exchange_size -= m.size
-
        
         # self.db_exchange = False # what to do with this?
         print("Dropping my DB",self.used_memory, self.exchange_size, len(self.messages_list))
@@ -199,14 +211,57 @@ class User:
                 self.m = 1
                 # self.isPaused = True
 
+    def predict(self,nslots):
+        self.list_of_zois_future = []
+        for c in range(nslots):
+            if c in self.scenario.tracesDic[str(self.id)]:
+                items = self.scenario.tracesDic[str(self.id)][c]
+                x = items[0]
+                y = items[1]
+                for z in self.scenario.zois_list:
+                    d = np.power(x - z.x,2) + np.power(y - z.y,2)
+                    if d < z.scenario.square_radius_of_persistence:
+                        self.myFuture[c] = z.id
+                    if d < z.scenario.square_radius_of_replication:
+                        self.myFuture[c] = z.id
+                    if d < z.scenario.square_radius_of_interest:
+                        self.myFuture[c] = z.id
+                    if d > z.scenario.square_radius_of_persistence:
+                        if c not in self.myFuture:
+                            self.myFuture[c] = -1 
+            else:
+                self.myFuture[c] = self.myFuture[c-1]
+                
+        # print(self.myFuture.values())  
+        self.list_of_zois_future.append(99)
+        for v in self.myFuture.values():
+            if self.list_of_zois_future[-1] != v:
+                self.list_of_zois_future.append(v)     
+
+        # print(self.list_of_zois_future)  
+
+
+
+    # Should the node drop content when he is out?
+    def shouldDrop(self,c,z):
+        remaining = self.max_time_elapsed - self.time_elapsed[z.id]
+        i = c + remaining
+        self.drop = True
+        if len(self.myFuture) < i:
+            if self.myFuture[c] != self.myFuture[i] and self.myFuture[i] != -1:  
+                self.drop = False
+        return self.drop
+
+    
+
     # Method to read from the traces (stored in the scenario) each node's new position
     # This method will make a node move in every new slot to the next point in the list
     def readTraces(self,c):
         if c in self.scenario.tracesDic[str(self.id)]:
-            items = self.scenario.tracesDic[str(self.id)].items()[c]
-            x = items[1][0]
-            y = items[1][1]
-            speed = items[1][2]
+            items = self.scenario.tracesDic[str(self.id)][c]
+            x = items[0]
+            y = items[1]
+            speed = items[2]
 
             # print("Next point: ", x, y)   
             self.x_list.append(x)
@@ -218,6 +273,156 @@ class User:
             self.y_list.append(self.y_list[-1])
             self.speed_list.append(0)
 
+
+
+    def userContactOut(self,c):
+        # Check if the node is not BUSY already for this slot and if the it is in the areas where data exchange is allowed
+        if self.busy is False and self.drop is False:
+            self.neighbours_list = []
+            # Find neighbours in this user's tx range
+            for user in self.scenario.usr_list:
+                if user.id != self.id:
+                    pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
+                    if pos_user < self.scenario.square_radius_of_tx:
+                        # Check if the neighbour is going to the areas where data exchange is required
+                        # if drop attribute is False means that he is going to that other area and keeping the content in its DB
+                        if user.drop is False:
+                            self.neighbours_list.append(user)
+                            print("This is my neighbour: ", user.id, user.busy)
+
+            # Suffle neighbours list to void connecting always to the same users
+            np.random.shuffle(self.neighbours_list)
+
+            # Once we have the list of neighbours, first check if there is a previous connection ongoing and the peer is still inside my tx range
+            # which is the same as being in the neighbours list since we checked the positions above
+            if self.ongoing_conn == True and self.prev_peer in self.neighbours_list:
+                print("I have a prev peer and it is still close. ", self.prev_peer.id)
+                self.connection_duration += 1
+                self.prev_peer.connection_duration += 1
+                # keep exchanging
+                self.db_exchange = False
+                self.prev_peer.db_exchange = False
+                if self.exchange_size == 0 and self.prev_peer.exchange_size == 0:
+                    self.hand_shake = self.hand_shake - 1
+                    self.prev_peer.hand_shake = self.prev_peer.hand_shake-1
+                    print("NOTHING TO EXCHANGE already loop", self.hand_shake, self.hand_shake_counter)
+                # else:
+                    # print("THINGS TO EXCHANGE already looop", self.hand_shake, self.hand_shake_counter)
+                    
+                self.exchangeData(self.prev_peer)
+
+            # else exchange data with a channel rate per slot
+            else:
+                # if my prev peer is not in my communication range we don't exchange data anymore
+                if self.ongoing_conn == True and self.prev_peer not in self.neighbours_list:
+                    print("I have a prev peer and it is far. ", self.prev_peer.id)
+                    if self.connection_duration not in self.scenario.connection_duration_list.keys():
+                        self.scenario.connection_duration_list[self.connection_duration] = 1
+                    else:
+                        self.scenario.connection_duration_list[self.connection_duration] +=1
+
+                    print("CONNEC DURATION FAR PEER--> ", self.connection_duration)
+                    #if the duration of connection is the hand shake plus only one slot in this section, it means that there were something
+                    # else to exchange and it didn't work
+                    if self.connection_duration == self.hand_shake + 1:
+                        self.scenario.count_0_exchange_conn += 1 
+
+                    self.connection_duration = 0
+                    self.prev_peer.connection_duration = 0
+                    # If in previous slot we have exchanged bits from next messages we have to remove them from the used memory because we did't manage to
+                    # exchange the whole message so we loose it. Basically --> only reset used_memory because the msg has not been added to the list.
+                    reset_used_memory = 0
+                    for m in self.messages_list:
+                        reset_used_memory = reset_used_memory + m.size
+                    self.used_memory = reset_used_memory
+                    reset_used_memory = 0
+                    for m in self.prev_peer.messages_list:
+                        reset_used_memory = reset_used_memory + m.size
+                    self.prev_peer.used_memory = reset_used_memory
+
+                    # reset all parameters to start clean with a new peer
+                    self.exchange_list = []
+                    self.prev_peer.exchange_list = []
+                    self.exchange_size = 0  
+                    self.prev_peer.exchange_size = 0
+                    self.db_exchange = False
+                    self.prev_peer.db_exchange = False
+                    self.ongoing_conn = False
+                    self.prev_peer.ongoing_conn = False
+                    # Set back the used mbs for next data exchange for next slot
+                    self.scenario.used_mbs = 0
+                    self.hand_shake_counter = 0
+                    self.prev_peer.hand_shake_counter = 0
+
+                # Continue looking for neighbours   
+                print("Neighbour list: ", len(self.neighbours_list))
+                # In case we want to connect with more than one neighbour we need to run a loop. Now we only select one neighbour from the list.
+                neighbour = None
+                for neig in self.neighbours_list:
+                        if not neig.busy and neig.ongoing_conn == False:
+                            neighbour = neig
+                            print("I found a peer not busy and without ongoing connection. ", neighbour.id)
+                            break
+                if neighbour != None:
+                    self.scenario.attempts +=1
+                    print("Attempts--- ", self.scenario.attempts)
+                    self.connection_duration += 1
+                    neighbour.connection_duration +=  1
+                    self.exchange_size = 0
+                    neighbour.exchange_size = 0
+                    self.exchange_list = []
+                    neighbour.exchange_list = []
+                    self.exchange_counter = 0
+                    neighbour.exchange_counter = 0
+                    self.counter_list = []
+                    neighbour.counter_list = []
+                    self.db_exchange = False
+                    neighbour.db_exchange = False
+                    self.scenario.used_mbs = 0
+                    # First, check the messages missing in the peers devices and add them to the exchange list of messages of every peer
+                    for m in self.messages_list:
+                        print("Neighbour does not have message? ", m not in neighbour.messages_list, m.size, len(self.messages_list))
+                        if m not in neighbour.messages_list: # and m.zoi in neighbour.zones.keys(): # Does not work for connected zois
+                            self.exchange_list.append(m)
+                            self.exchange_size = self.exchange_size + m.size
+                            if len(self.counter_list) == 0:
+                                self.counter_list.append(m.size)
+                            else:
+                                self.counter_list.append(self.counter_list[-1]+m.size)
+
+                    # After choosing the messages that are missing in the peer, we need to shuffle the list
+                    np.random.shuffle(self.exchange_list)
+                    print("my number of messages: ", len(self.messages_list), " LENGTH --> ", self.used_memory)
+                    print("number of messages from neighbour: ", len(neighbour.messages_list), " LENGTH --> ", neighbour.used_memory)
+                    for m in neighbour.messages_list:
+                        print("I don't have message? ", m not in self.messages_list, m.size,len(neighbour.messages_list))
+                        if m not in self.messages_list:
+                            neighbour.exchange_list.append(m)
+                            neighbour.exchange_size = neighbour.exchange_size + m.size
+                            if len(neighbour.counter_list) == 0:
+                                neighbour.counter_list.append(m.size)
+                            else:
+                                neighbour.counter_list.append(neighbour.counter_list[-1]+m.size)
+
+                    # After choosing the messages that are missing in the peer, we need to shuffle the list
+                    np.random.shuffle(neighbour.exchange_list)
+
+                    # Second, exchange the data with peer!!
+                    print("My exchange db size --> ", self.exchange_size, "Counter list", len(self.counter_list))
+                    print("Neighbour exchange db size --> ", neighbour.exchange_size, "Counter list", len(neighbour.counter_list))
+                    # Count in advance if the connection is going to be useful or not, it means if they have something to exchange.
+                    #In case we have nothing to exchange we use the last slot for the checking
+                    if self.exchange_size == 0 and neighbour.exchange_size == 0:
+                        self.hand_shake = self.hand_shake - 1
+                        neighbour.hand_shake = neighbour.hand_shake-1
+                        self.scenario.count_non_useful +=1
+                        print("NOTHING TO EXCHANGE", self.hand_shake, self.hand_shake_counter)
+
+                    else:
+                        print("THINGS TO EXCHANGE", self.hand_shake, self.hand_shake_counter)
+                        self.scenario.count_useful +=1
+
+                    self.exchangeData(neighbour)
 
     def userContact(self,c):
         print ("My id is ", self.id, " Am I busy for this slot: ", self.busy)

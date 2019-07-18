@@ -8,9 +8,9 @@ class Scenario:
     'Common base class for all scenarios'
 
     def __init__(self, radius_of_interest, radius_of_replication, radius_of_persistence, max_area, speed_distribution,pause_distribution,min_pause,max_pause,
-    min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois,traces_folder):
+    min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois,traces_folder,num_slots):
         # print ("Creating new scenario...")
-        self.num_slots = 0
+        self.num_slots = num_slots
         self.square_radius_of_interest = radius_of_interest*radius_of_interest
         self.square_radius_of_replication = radius_of_replication*radius_of_replication
         self.square_radius_of_persistence = radius_of_persistence*radius_of_persistence
@@ -125,12 +125,7 @@ class Scenario:
                     self.tracesDic[node][time] = [x,y,speed]
             # print("node ", node , "time", time , "x", x, "y",y, "speed", speed)
 
-        min_len = 10000000
-        for k,v  in self.tracesDic.items():
-            if len(v)<min_len:
-                min_len = len(v)
-        self.num_slots = min_len - 1
-        print("shortest length of nodes position ",self.num_slots)
+
            
 
 
