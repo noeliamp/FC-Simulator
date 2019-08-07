@@ -7,11 +7,10 @@ import numpy as np
 class Dump:
     'Common base class for all dumps'
 
-    def __init__(self,scenario,uid,s):
+    def __init__(self,scenario,uid):
         self.id = 1
         self.scenario= scenario
         self.uid = uid 
-        self.s = s
 
     ####### last user's position
     def userLastPosition(self):
