@@ -7,8 +7,8 @@ import re
 class Scenario:
     'Common base class for all scenarios'
 
-    def __init__(self, radius_of_interest, radius_of_replication, max_area, speed_distribution,pause_distribution,min_pause,max_pause,
-    min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois,traces_folder,num_slots):
+    def __init__(self, radius_of_interest, radius_of_replication, max_area, speed_distribution,pause_distribution,min_pause,max_pause,min_speed,max_speed,delta,
+    radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois,traces_folder,num_slots, algorithm):
         # print ("Creating new scenario...")
         self.num_slots = num_slots
         self.square_radius_of_interest = radius_of_interest*radius_of_interest
@@ -44,6 +44,7 @@ class Scenario:
         self.count_useful = 0
         self.connection_duration_list = OrderedDict()
         self.list_of_tuples_pos = []
+        self.algorithm = algorithm
 
         # If we only define 1 zoi we assume it is going to be located in the center of the scenario
         if self.num_zois == 1:
