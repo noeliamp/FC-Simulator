@@ -120,7 +120,7 @@ else:
 
 # CREATION OF SCENARIO With num_zois number of zois
 scenario = Scenario(radius_of_interest, radius_of_replication, max_area,speed_distribution,pause_distribution,min_pause,max_pause, 
-min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution,hand_shake,num_zois, traces_folder,num_slots)
+min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution,hand_shake,num_zois, traces_folder,num_slots,algorithm)
 
 ################## Parse traces in case we are using them
 if traces_folder != "none":
@@ -254,7 +254,6 @@ while c < num_slots:
             
         # Check the new point zone of the user
         scenario.usr_list[j].calculateZones()
-        scenario.usr_list[j].checkDB()
 
 
     # Run contacts for every slot after mobility.
@@ -309,7 +308,6 @@ while c < num_slots:
                     # fill the availability list with 0 to match the slot in which the content was created
                     a_per_content[str(m.id)][z.id][:c] = [0] * c
                 a_per_content[str(m.id)][z.id].append(m.counter[z.id]/nodes_in_zoi[z.id][c])
-                print("new content so 0 until slot, ", c ,m.counter[z.id],nodes_in_zoi[z.id][c], a_per_content[str(m.id)][z.id])
 
                 ### replicas
                 if str(m.id) not in replicas:
@@ -355,7 +353,6 @@ dump.replicasPerContent(replicas)
 dump.nodesZoiPerSlot(nodes_in_zoi)
 dump.nodesPath()
 dump.nodesInRz()
-dump.replicas()
 ########################## End of printing in simulation ##############################
 sys.stdout = orig_stdout
 f.close()

@@ -93,7 +93,7 @@ class Dump:
     ####### Replicas per content per slot
 
     def replicasPerContent(self,replicas):
-        with open('results/'+str(self.uid)+'/reolicas-per-content.json', 'w') as fp:
+        with open('results/'+str(self.uid)+'/replicas-per-content.json', 'w') as fp:
             json.dump(replicas, fp)
 
 
@@ -144,9 +144,13 @@ class Dump:
     ####### how long are nodes inside RZs
 
     def nodesInRz(self):
+        outfile = open('results/'+str(self.uid)+'/nodes-rz-IO.txt', 'w')
+        for n in self.scenario.usr_list:
+            outfile.writelines(str(n.list_of_zois_future) + "\n")
+        outfile.close()
         outfile = open('results/'+str(self.uid)+'/nodes-rz.txt', 'w')
         for n in self.scenario.usr_list:
-            outfile.writelines(n.list_of_zois_future + "\n")
+            outfile.writelines(str(n.myFuture.values()) + "\n")
         outfile.close()
 
 

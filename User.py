@@ -240,7 +240,7 @@ class User:
             if self.list_of_zois_future[-1] != v:
                 self.list_of_zois_future.append(v)     
 
-        print(self.list_of_zois_future)  
+        # print(self.list_of_zois_future)  
 
 
     # Method to read from the traces (stored in the scenario) each node's new position
