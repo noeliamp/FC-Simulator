@@ -178,25 +178,25 @@ for i in range(0,num_users):
 # add the list of users to every scenario
 scenario.usr_list = usr_list
 
-# Computing availability per CONTENT per ZOI
+# creating availability data structures per CONTENT per ZOI
 for z in scenario.zois_list:
     if nodes_in_zoi[z.id][0] == 0:
         for m in z.content_list:
             a_per_content[str(m.id)] = OrderedDict()
             a_per_content[str(m.id)][z.id] = []
-            a_per_content[str(m.id)][z.id].append(0)
+            # a_per_content[str(m.id)][z.id].append(0)
             replicas[str(m.id)] = OrderedDict()
             replicas[str(m.id)][z.id] = []
-            replicas[str(m.id)][z.id].append(0)
+            # replicas[str(m.id)][z.id].append(0)
 
     else:
         for m in z.content_list:
             a_per_content[str(m.id)] = OrderedDict()
             a_per_content[str(m.id)][z.id] = []
-            a_per_content[str(m.id)][z.id].append(m.counter[z.id]/nodes_in_zoi[z.id][0])
+            # a_per_content[str(m.id)][z.id].append(m.counter[z.id]/nodes_in_zoi[z.id][0])
             replicas[str(m.id)] = OrderedDict()
             replicas[str(m.id)][z.id] = []
-            replicas[str(m.id)][z.id].append(m.counter[z.id])
+            # replicas[str(m.id)][z.id].append(m.counter[z.id])
 
     print("this availability at zoi : " , z.id , a_per_content[str(m.id)][z.id],m.counter[z.id], nodes_in_zoi[z.id][0])
 
@@ -215,12 +215,15 @@ while c < num_slots:
         # Restart the counter for each content availability in each zoi
         for m in z.content_list:
             m.counter[z.id] = 0
-            # if message ttl is over, kill the content, otherwise increment counter for ttl
-            if m.ttl == ttl:
-                print("im dying")
-                m.die()
-            else:
-                m.ttl += 1
+
+
+    for m in scenario.zois_list[0].content_list:       
+        # if message ttl is over, kill the content, otherwise increment counter for ttl
+        if m.ttl == ttl:
+            print("im dying")
+            m.die()
+        else:
+            m.ttl += 1
     
     # Creating new contents if required at the specific time slot
     if content_generation_time != "none":
