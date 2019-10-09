@@ -67,6 +67,7 @@ class User:
         self.max_time_elapsed = max_time_elapsed
         self.myFuture = OrderedDict()
         self.contacts_per_slot = OrderedDict()
+
         self.calculateZones()
         # self.displayUser()
 
@@ -95,19 +96,21 @@ class User:
                 self.time_elapsed[z.id] = 0
                 # print("calculating in interest", self.id)
             if d > z.scenario.square_radius_of_replication:
+                # print('ENTRO')
                 if self.ongoing_conn == False: 
+                    # print('ENTRO 2')
                     # if z was stored as a zone, we should remove it because the node is now out 
                     if z in self.zones:
                         del self.zones[z]
-                        self.checkDB(z)
+                    self.checkDB(z)
                        
                     
     def checkDB(self,z):
-        if self.scenario.algorithm == "out": 
+        if self.scenario.algorithm == "out" or self.scenario.algorithm == "in-elapsed": 
             if len(self.messages_list)> 0 and z.id in self.time_elapsed and self.time_elapsed[z.id] == self.max_time_elapsed and self.shouldDrop(z):
                 self.messages_list = []
                 self.used_memory = 0
-                print("Dropping my DB",self.used_memory, self.exchange_size, len(self.messages_list))
+                # print("Dropping my DB",self.used_memory, self.exchange_size, len(self.messages_list))
             else:
                 if z.id in self.time_elapsed:
                     self.time_elapsed[z.id] += 1
@@ -115,9 +118,17 @@ class User:
                     self.time_elapsed[z.id] = 1
 
         if self.scenario.algorithm == "only-in": 
-            self.messages_list = []
-            self.used_memory = 0
-            print("Dropping my DB",self.used_memory, self.exchange_size, len(self.messages_list))
+            # check if the content belongs to only one or both zois, in case it belongs to both zois the node does not remove it
+            for oz in self.scenario.zois_list:
+                if oz != z:
+                    other = oz
+            # print('ENTRO 3')
+            for m in z.content_list:
+                if m in self.messages_list and m not in other.content_list:
+                    self.messages_list.remove(m)
+                    self.used_memory =- m.size
+                    self.exchange_size =- m.size
+                    # print("Dropping my DB",self.used_memory, self.exchange_size, len(self.messages_list))
 
 
     # Check if the node is in other zoi when time elapsed has passed after leaving the previous zoi
@@ -311,6 +322,19 @@ class User:
                     else:
                         self.scenario.connection_duration_list[self.connection_duration] +=1
 
+                    # Add the location of the connection
+                    for zoi in self.zones.keys():
+                            if int(zoi.id) not in self.scenario.connection_location_list:
+                                self.scenario.connection_location_list[int(zoi.id)] = 1
+                            else:
+                                self.scenario.connection_location_list[int(zoi.id)] +=1
+
+                    if len(self.zones.keys()) == 0:
+                        if -1 not in self.scenario.connection_location_list:
+                            self.scenario.connection_location_list[-1] = 1
+                        else:
+                            self.scenario.connection_location_list[-1] +=1
+
                     # print("CONNEC DURATION FAR PEER--> ", self.connection_duration)
                     #if the duration of connection is the hand shake plus only one slot in this section, it means that there were something
                     # else to exchange and it didn't work
@@ -485,6 +509,13 @@ class User:
                         self.scenario.connection_duration_list[self.connection_duration] = 1
                     else:
                         self.scenario.connection_duration_list[self.connection_duration] +=1
+
+                    # Add the location of the connection
+                    for zoi in self.zones.keys():
+                        if int(zoi.id) not in self.scenario.connection_location_list:
+                            self.scenario.connection_location_list[int(zoi.id)] = 1
+                        else:
+                            self.scenario.connection_location_list[int(zoi.id)] +=1
 
                     # print("CONNEC DURATION FAR PEER--> ", self.connection_duration)
                     #if the duration of connection is the hand shake plus only one slot in this section, it means that there were something
@@ -800,6 +831,18 @@ class User:
                 else:
                     self.scenario.connection_duration_list[self.connection_duration] +=1
                 # print("CONNEC DURATION normal--> ", self.connection_duration)
+                # Add the location of the connection
+                for zoi in self.zones.keys():
+                    if int(zoi.id) not in self.scenario.connection_location_list:
+                        self.scenario.connection_location_list[int(zoi.id)] = 1
+                    else:
+                        self.scenario.connection_location_list[int(zoi.id)] +=1
+
+                if len(self.zones.keys()) == 0 and (self.scenario.algorithm == 'out' or self.scenario.algorithm == 'our'):
+                    if -1 not in self.scenario.connection_location_list:
+                        self.scenario.connection_location_list[-1] = 1
+                    else:
+                        self.scenario.connection_location_list[-1] +=1
 
         
                 self.connection_duration = 0

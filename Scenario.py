@@ -43,6 +43,7 @@ class Scenario:
         self.count_non_useful = 0
         self.count_useful = 0
         self.connection_duration_list = OrderedDict()
+        self.connection_location_list = OrderedDict()
         self.list_of_tuples_pos = []
         self.algorithm = algorithm
 
@@ -55,7 +56,7 @@ class Scenario:
         if self.num_zois > 1:
             # In case we are running simulations based on maps points
             if traces_folder != "none":
-                f=open('traces/POIS/POI.wkt',"r")
+                f=open('traces/POIS/POI-0.wkt',"r")
                 lines=f.readlines()
                 # First we read the points from the file
                 for line in lines:
@@ -66,12 +67,28 @@ class Scenario:
                         numbers.append(float(num[1]))
 
                         self.list_of_tuples_pos.append(numbers)
+                        break
+
+                f=open('traces/POIS/POI-1.wkt',"r")
+                lines=f.readlines()
+                # First we read the points from the file
+                for line in lines:
+                    if line.startswith("POINT"):
+                        num = re.findall(r'\d+(?:\.\d*)?', line)
+                        numbers = [] 
+                        numbers.append(float(num[0]))
+                        numbers.append(float(num[1]))
+
+                        self.list_of_tuples_pos.append(numbers)
+                        break 
+
                 print('POINTS ', self.list_of_tuples_pos)
                 # Second, we create the zois according to the points
                 for i in range(0,len(self.list_of_tuples_pos)):
                     zoi = Zoi(i, self.list_of_tuples_pos[i][0],self.list_of_tuples_pos[i][1],self)
                     self.zois_list.append(zoi)
 
+            
             # In case we are running simulations with zois in random positions within the scenario
             else:
                 for i in range(0,self.num_zois):

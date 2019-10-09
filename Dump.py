@@ -70,12 +70,18 @@ class Dump:
 
     ####### Connection duration list
 
-    def connectionDurationAndMore(self,contacts_per_slot_per_user):
+    def connectionDurationAndMore(self,contacts_per_slot_per_user,contents_per_slot_per_user):
         with open('results/'+str(self.uid)+'/contacts-per-slot-per-user.json', 'w') as fp:
             json.dump(contacts_per_slot_per_user, fp)
 
         with open('results/'+str(self.uid)+'/connection-duration-list.json', 'w') as fp2:
             json.dump(self.scenario.connection_duration_list, fp2)
+
+        with open('results/'+str(self.uid)+'/contents-list.json', 'w') as fp3:
+            json.dump(contents_per_slot_per_user, fp3)
+
+        with open('results/'+str(self.uid)+'/connection-location-list.json', 'w') as fp4:
+            json.dump(self.scenario.connection_location_list, fp4)
 
     ####### Availability per zoi per slot
 

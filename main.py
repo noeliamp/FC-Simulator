@@ -97,6 +97,8 @@ bar.start()
 
 # DATA STRUCTURES 
 contacts_per_slot_per_user= OrderedDict()
+contents_per_slot_per_user= OrderedDict()
+
 usr_list = []        # list of users in the entire scenario
 nodes_in_zoi = OrderedDict()
 c = 0 # Slot number
@@ -122,6 +124,12 @@ else:
 scenario = Scenario(radius_of_interest, radius_of_replication, max_area,speed_distribution,pause_distribution,min_pause,max_pause, 
 min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution,hand_shake,num_zois, traces_folder,num_slots,algorithm)
 
+print("Number of zois and positions: ", len(scenario.zois_list))
+for zoi in scenario.zois_list:
+    print(zoi.x, zoi.y)
+
+sys.stdout = orig_stdout
+f.close()
 ################## Parse traces in case we are using them
 if traces_folder != "none":
     scenario.parseTraces(traces_folder,traces_file)
@@ -198,11 +206,10 @@ for z in scenario.zois_list:
             replicas[str(m.id)][z.id] = []
             # replicas[str(m.id)][z.id].append(m.counter[z.id])
 
-    print("this availability at zoi : " , z.id , a_per_content[str(m.id)][z.id],m.counter[z.id], nodes_in_zoi[z.id][0])
 
 ################## ################## Loop per slot into a simulation ################## ##################
 while c < num_slots:
-    print("SLOT NUMBER: ", c)
+    # print("SLOT NUMBER: ", c)
     c += 1
     bar.update(c)
 
@@ -220,7 +227,7 @@ while c < num_slots:
     for m in scenario.zois_list[0].content_list:       
         # if message ttl is over, kill the content, otherwise increment counter for ttl
         if m.ttl == ttl:
-            print("im dying")
+            # print("im dying")
             m.die()
         else:
             m.ttl += 1
@@ -233,13 +240,13 @@ while c < num_slots:
                 if len(u.zones) > 0:
                     # print("User id ", u.id)
                     msg = Message(uuid.uuid4(),content_size,scenario,c)
-                    print("Creating contents at slot: ", c)
+                    # print("Creating contents at slot: ", c)
                     # print("User msg list ", len(u.messages_list))
                     u.messages_list.append(msg)  
                     u.used_memory += msg.size  
                     # print("User msg list ", len(u.messages_list))
                     userCounter+=1
-                    for o in scenario.zois_list:
+                    for o in u.zones:
                         o.content_list.append(msg)
                     if userCounter == content_generation_users:
                         break
@@ -266,7 +273,7 @@ while c < num_slots:
         scenario.usr_list[k].contacts_per_slot[c] = []
         if scenario.algorithm == 'out':
             scenario.usr_list[k].userContactOut(c)
-        if scenario.algorithm == 'only-in':
+        if scenario.algorithm == 'only-in' or scenario.algorithm == 'in-elapsed':
             scenario.usr_list[k].userContact(c)
 
     # count attempts of connections per slot
@@ -321,7 +328,12 @@ while c < num_slots:
 
                 replicas[str(m.id)][z.id].append(m.counter[z.id])
         
-        print("availability: ", m.counter[z.id],nodes_in_zoi[z.id][c], a_per_content[str(m.id)][z.id],m.counter[z.id])
+        # print("availability: ", m.counter[z.id],nodes_in_zoi[z.id][c], a_per_content[str(m.id)][z.id],m.counter[z.id])
+    for u in scenario.usr_list:
+        if u.id not in contents_per_slot_per_user:
+            contents_per_slot_per_user[u.id]= []
+        contents_per_slot_per_user[u.id].append(len(u.messages_list))
+        # print('computing: ',u.id, '-->', len(u.messages_list))
 
     ################################## ############## ############################################
 
@@ -336,20 +348,33 @@ for k in range(0,num_users):
         scenario.usr_list[k].ongoing_conn = False
         scenario.usr_list[k].prev_peer.ongoing_conn = False
         # print("CONNEC DURATION out--> ", scenario.usr_list[k].connection_duration)
+
+         # Add the location of the connection
+        for zoi in scenario.usr_list[k].zones.keys():
+            if int(zoi.id) not in scenario.usr_list[k].scenario.connection_location_list:
+                scenario.usr_list[k].scenario.connection_location_list[int(zoi.id)] = 1
+            else:
+                scenario.usr_list[k].scenario.connection_location_list[int(zoi.id)] +=1
+
+        if len(scenario.usr_list[k].zones.keys()) == 0:
+            if -1 not in scenario.usr_list[k].scenario.connection_location_list:
+                scenario.usr_list[k].scenario.connection_location_list[-1] = 1
+            else:
+                scenario.usr_list[k].scenario.connection_location_list[-1] +=1
     
 for u in scenario.usr_list:
     contacts_per_slot_per_user[u.id] = u.contacts_per_slot
 
 
-for z in scenario.zois_list:
-    for m in z.content_list:
-        print(m.id,m.creation_slot)
-        print(len(a_per_content[str(m.id)][z.id]),a_per_content[str(m.id)][z.id])
+# for z in scenario.zois_list:
+#     for m in z.content_list:
+#         print(m.id,m.creation_slot)
+#         print(len(a_per_content[str(m.id)][z.id]),a_per_content[str(m.id)][z.id])
 
 ###################### Functions to dump data per simulation #########################
 dump = Dump(scenario,uid)
 dump.userLastPosition()
-dump.connectionDurationAndMore(contacts_per_slot_per_user)
+dump.connectionDurationAndMore(contacts_per_slot_per_user,contents_per_slot_per_user)
 dump.con0exchange()
 dump.availabilityPerContent(a_per_content)
 dump.replicasPerContent(replicas)
