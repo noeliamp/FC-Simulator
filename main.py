@@ -75,9 +75,9 @@ max_time_elapsed = data["max_time_elapsed"]
 ttl = data["msg_ttl"]
 algorithm = data["algorithm"]
 # Do we want to set a seed?
-# seed_list = [15482669,15482681,15482683,15482711,15482729,15482941,15482947,15482977,15482993,15483023,15483029,15483067,15483077,15483079,15483089,15483101,15483103,15482743,15482771,15482773,15482783,15482807,15482809,15482827,15482851,15482861,15482893,15482911,15482917,15482923]
-# seed = int(seed)
-# np.random.seed(seed_list[0])
+seed_list = [15482669,15482681,15482683,15482711,15482729,15482941,15482947,15482977,15482993,15483023,15483029,15483067,15483077,15483079,15483089,15483101,15483103,15482743,15482771,15482773,15482783,15482807,15482809,15482827,15482851,15482861,15482893,15482911,15482917,15482923]
+seed = int(traces_file)
+np.random.seed(seed_list[seed])
 
 print("Content size ", content_size)
 print("Max memory ", max_memory)
@@ -134,12 +134,12 @@ f.close()
 if traces_folder != "none":
     scenario.parseTraces(traces_folder,traces_file)
 
-# CREATION OF CONTENTS
-for m in range(0,num_contents):
-    msg = Message(uuid.uuid4(),content_size,scenario,0)
-    # To measure availability in all zois we need to include each msg in every zoi
-    for o in scenario.zois_list:
-        o.content_list.append(msg)
+# CREATION OF CONTENTS at the beginning of simulation for all nodes
+# for m in range(0,num_contents):
+#     msg = Message(uuid.uuid4(),content_size,scenario,0)
+#     # To measure availability in all zois we need to include each msg in every zoi
+#     for o in scenario.zois_list:
+#         o.content_list.append(msg)
 
 # Start users counter in every zoi to 0
 for z in scenario.zois_list:
@@ -161,50 +161,55 @@ for i in range(0,num_users):
         user = User(i,np.random.uniform(-max_area, max_area),np.random.uniform(-max_area, max_area), scenario,max_memory,max_time_elapsed)
 
     # add the content to each user according to the ZOIs that they belong to
-    for z in user.zones.keys():
-        # to compute the first availability (if node is not out it will have the message for sure)
-        np.random.shuffle(z.content_list)
-        if num_contents_node < num_contents:
-            user.messages_list.extend(z.content_list[:num_contents_node])
-        else:
-            user.messages_list.extend(z.content_list[:num_contents])
+    # for z in user.zones.keys():
+    #     # to compute the first availability (if node is not out it will have the message for sure)
+    #     np.random.shuffle(z.content_list)
+    #     if num_contents_node < num_contents:
+    #         user.messages_list.extend(z.content_list[:num_contents_node])
+    #     else:
+    #         user.messages_list.extend(z.content_list[:num_contents])
 
-        # Increase the counter for nodes in each zoi 
+    #     # Increase the counter for nodes in each zoi 
      
-        nodes_in_zoi[z.id][0] += 1
-        # and the number of nodes having each content in that zoi
-        for m in user.messages_list:
-            m.counter[z.id] += 1
+    #     nodes_in_zoi[z.id][0] += 1
+    #     # and the number of nodes having each content in that zoi
+    #     for m in user.messages_list:
+    #         m.counter[z.id] += 1
 
-    # now we set the amount of memory used by the node according to the messages that were included in its list.
-    for m in user.messages_list:
-        user.used_memory += m.size                     
+    # # now we set the amount of memory used by the node according to the messages that were included in its list.
+    # for m in user.messages_list:
+    #     user.used_memory += m.size                     
 
     usr_list.append(user)
 
 
-# add the list of users to every scenario
+# add the list of users to every scenario and create the initial contents
 scenario.usr_list = usr_list
+userCounter=0
+for u in scenario.usr_list:
+    if len(u.zones) > 0:
+        # print("User id ", u.id)
+        msg = Message(uuid.uuid4(),content_size,scenario,c)
+        # print("Creating contents at slot: ", c)
+        # print("User msg list ", len(u.messages_list))
+        u.messages_list.append(msg)  
+        u.used_memory += msg.size  
+        # print("User msg list ", len(u.messages_list))
+        userCounter+=1
+        for o in u.zones:
+            o.content_list.append(msg)
+        if userCounter == content_generation_users:
+            break
 
 # creating availability data structures per CONTENT per ZOI
 for z in scenario.zois_list:
-    if nodes_in_zoi[z.id][0] == 0:
-        for m in z.content_list:
-            a_per_content[str(m.id)] = OrderedDict()
-            a_per_content[str(m.id)][z.id] = []
-            # a_per_content[str(m.id)][z.id].append(0)
-            replicas[str(m.id)] = OrderedDict()
-            replicas[str(m.id)][z.id] = []
-            # replicas[str(m.id)][z.id].append(0)
-
-    else:
-        for m in z.content_list:
-            a_per_content[str(m.id)] = OrderedDict()
-            a_per_content[str(m.id)][z.id] = []
-            # a_per_content[str(m.id)][z.id].append(m.counter[z.id]/nodes_in_zoi[z.id][0])
-            replicas[str(m.id)] = OrderedDict()
-            replicas[str(m.id)][z.id] = []
-            # replicas[str(m.id)][z.id].append(m.counter[z.id])
+    for m in z.content_list:
+        a_per_content[str(m.id)] = OrderedDict()
+        a_per_content[str(m.id)][0] = []
+        a_per_content[str(m.id)][1] = []
+        replicas[str(m.id)] = OrderedDict()
+        replicas[str(m.id)][0] = []
+        replicas[str(m.id)][1] = []
 
 
 ################## ################## Loop per slot into a simulation ################## ##################
@@ -221,8 +226,8 @@ while c < num_slots:
         nodes_in_zoi[z.id][c] = 0
         # Restart the counter for each content availability in each zoi
         for m in z.content_list:
-            m.counter[z.id] = 0
-
+            m.counter[0] = 0
+            m.counter[1] = 0
 
     for m in scenario.zois_list[0].content_list:       
         # if message ttl is over, kill the content, otherwise increment counter for ttl
@@ -273,7 +278,7 @@ while c < num_slots:
         scenario.usr_list[k].contacts_per_slot[c] = []
         if scenario.algorithm == 'out':
             scenario.usr_list[k].userContactOut(c)
-        if scenario.algorithm == 'only-in' or scenario.algorithm == 'in-elapsed':
+        if scenario.algorithm == 'in':
             scenario.usr_list[k].userContact(c)
 
     # count attempts of connections per slot
@@ -294,39 +299,63 @@ while c < num_slots:
             for m in z.content_list:
                 if str(m.id) not in a_per_content:
                     a_per_content[str(m.id)] = OrderedDict()
-                if z.id not in a_per_content[str(m.id)]:
-                    a_per_content[str(m.id)][z.id] = []
-                    a_per_content[str(m.id)][z.id][:c] = [0] * c
+                if 0 not in a_per_content[str(m.id)]:
+                    a_per_content[str(m.id)][0] = []
+                    a_per_content[str(m.id)][0][:c] = [0] * c
+                if 1 not in a_per_content[str(m.id)]:
+                    a_per_content[str(m.id)][1] = []
+                    a_per_content[str(m.id)][1][:c] = [0] * c
 
-                a_per_content[str(m.id)][z.id].append(0)
-
+                a_per_content[str(m.id)][0].append(0)
+                a_per_content[str(m.id)][1].append(0)
                 ### replicas
                 if str(m.id) not in replicas:
                     replicas[str(m.id)] = OrderedDict()
-                if z.id not in replicas[str(m.id)]:
-                    replicas[str(m.id)][z.id] = []
-                    replicas[str(m.id)][z.id][:c] = [0] * c
+                if 0 not in replicas[str(m.id)]:
+                    replicas[str(m.id)][0] = []
+                    replicas[str(m.id)][0][:c] = [0] * c
+                if 1 not in replicas[str(m.id)]:
+                    replicas[str(m.id)][1] = []
+                    replicas[str(m.id)][1][:c] = [0] * c
 
-                replicas[str(m.id)][z.id].append(0)
+                replicas[str(m.id)][0].append(0)
+                replicas[str(m.id)][1].append(0)
 
         else:
             for m in z.content_list:
                 if str(m.id) not in a_per_content:
                     a_per_content[str(m.id)] = OrderedDict()
-                if z.id not in a_per_content[str(m.id)]:
-                    a_per_content[str(m.id)][z.id] = []
+                if 0 not in a_per_content[str(m.id)]:
+                    a_per_content[str(m.id)][0] = []
                     # fill the availability list with 0 to match the slot in which the content was created
-                    a_per_content[str(m.id)][z.id][:c] = [0] * c
-                a_per_content[str(m.id)][z.id].append(m.counter[z.id]/nodes_in_zoi[z.id][c])
+                    a_per_content[str(m.id)][0][:c] = [0] * c
+                if 1 not in a_per_content[str(m.id)]:
+                    a_per_content[str(m.id)][1] = []
+                    # fill the availability list with 0 to match the slot in which the content was created
+                    a_per_content[str(m.id)][1][:c] = [0] * c
+
+                if nodes_in_zoi[0][c] != 0:
+                    a_per_content[str(m.id)][0].append(m.counter[0]/nodes_in_zoi[0][c])
+                else:
+                    a_per_content[str(m.id)][0].append(0)
+
+                if nodes_in_zoi[1][c] != 0:
+                    a_per_content[str(m.id)][1].append(m.counter[1]/nodes_in_zoi[1][c])
+                else:
+                    a_per_content[str(m.id)][1].append(0)
 
                 ### replicas
                 if str(m.id) not in replicas:
                     replicas[str(m.id)] = OrderedDict()
-                if z.id not in replicas[str(m.id)]:
-                    replicas[str(m.id)][z.id] = []
-                    replicas[str(m.id)][z.id][:c] = [0] * c
+                if 0 not in replicas[str(m.id)]:
+                    replicas[str(m.id)][0] = []
+                    replicas[str(m.id)][0][:c] = [0] * c
+                if 1 not in replicas[str(m.id)]:
+                    replicas[str(m.id)][1] = []
+                    replicas[str(m.id)][1][:c] = [0] * c
 
-                replicas[str(m.id)][z.id].append(m.counter[z.id])
+                replicas[str(m.id)][0].append(m.counter[0])
+                replicas[str(m.id)][1].append(m.counter[1])
         
         # print("availability: ", m.counter[z.id],nodes_in_zoi[z.id][c], a_per_content[str(m.id)][z.id],m.counter[z.id])
     for u in scenario.usr_list:

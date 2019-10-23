@@ -61,13 +61,11 @@ class User:
         self.vy = 0
         self.x_origin = 0
         self.y_origin = 0
-        self.drop = False
         self.time_elapsed = OrderedDict()
         self.connection_duration = 0
         self.max_time_elapsed = max_time_elapsed
         self.myFuture = OrderedDict()
         self.contacts_per_slot = OrderedDict()
-
         self.calculateZones()
         # self.displayUser()
 
@@ -81,7 +79,6 @@ class User:
             print("Zone: ", self.zones[z])
     
     def calculateZones(self):
-        self.canIexchange = False
         self.zones = OrderedDict()
 
         for z in self.scenario.zois_list:
@@ -96,51 +93,27 @@ class User:
                 self.time_elapsed[z.id] = 0
                 # print("calculating in interest", self.id)
             if d > z.scenario.square_radius_of_replication:
-                # print('ENTRO')
-                if self.ongoing_conn == False: 
-                    # print('ENTRO 2')
-                    # if z was stored as a zone, we should remove it because the node is now out 
-                    if z in self.zones:
-                        del self.zones[z]
-                    self.checkDB(z)
+                # if z was stored as a zone, we should remove it because the node is now out 
+                if z in self.zones:
+                    del self.zones[z]
+                self.checkDB(z)
                        
                     
     def checkDB(self,z):
-        if self.scenario.algorithm == "out" or self.scenario.algorithm == "in-elapsed": 
-            if len(self.messages_list)> 0 and z.id in self.time_elapsed and self.time_elapsed[z.id] == self.max_time_elapsed and self.shouldDrop(z):
-                self.messages_list = []
-                self.used_memory = 0
-                # print("Dropping my DB",self.used_memory, self.exchange_size, len(self.messages_list))
-            else:
+        for m in z.content_list:
+            if m in self.messages_list:
                 if z.id in self.time_elapsed:
-                    self.time_elapsed[z.id] += 1
+                    if self.time_elapsed[z.id] == self.max_time_elapsed:
+                        self.messages_list.remove(m)
+                        self.used_memory =- m.size
+                        self.exchange_size =- m.size
+                        self.time_elapsed[z.id] = 0
+                    else:
+                        self.time_elapsed[z.id] += 1
                 else:
-                    self.time_elapsed[z.id] = 1
-
-        if self.scenario.algorithm == "only-in": 
-            # check if the content belongs to only one or both zois, in case it belongs to both zois the node does not remove it
-            for oz in self.scenario.zois_list:
-                if oz != z:
-                    other = oz
-            # print('ENTRO 3')
-            for m in z.content_list:
-                if m in self.messages_list and m not in other.content_list:
-                    self.messages_list.remove(m)
-                    self.used_memory =- m.size
-                    self.exchange_size =- m.size
-                    # print("Dropping my DB",self.used_memory, self.exchange_size, len(self.messages_list))
-
-
-    # Check if the node is in other zoi when time elapsed has passed after leaving the previous zoi
-    def shouldDrop(self,z):
-        self.drop = True
-        for zone in self.zones:
-            if z.id != zone.id:
-                self.drop = False
-        
-        # print("drop?", self.drop)
-        return self.drop           
-
+                    self.time_elapsed[z.id] = 1     
+            
+          
     def randomDirection(self):
         # print("My id is: ", self.id)
         # If it is the beggining we need to choose the parameters (direction,etc)
@@ -287,9 +260,9 @@ class User:
                     if pos_user < self.scenario.square_radius_of_tx:
                         # Check if the neighbour is going to the areas where data exchange is required
                         # if drop attribute is False means that he is going to that other area and keeping the content in its DB
-                        if user.drop is False:
-                            self.neighbours_list.append(user)
-                            # print("This is my neighbour: ", user.id, user.busy)
+                        # if user.drop is False:
+                        self.neighbours_list.append(user)
+                        # print("This is my neighbour: ", user.id, user.busy)
 
             # Suffle neighbours list to void connecting always to the same users
             np.random.shuffle(self.neighbours_list)
@@ -838,7 +811,7 @@ class User:
                     else:
                         self.scenario.connection_location_list[int(zoi.id)] +=1
 
-                if len(self.zones.keys()) == 0 and (self.scenario.algorithm == 'out' or self.scenario.algorithm == 'our'):
+                if len(self.zones.keys()) == 0 and self.scenario.algorithm == 'out':
                     if -1 not in self.scenario.connection_location_list:
                         self.scenario.connection_location_list[-1] = 1
                     else:
