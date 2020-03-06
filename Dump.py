@@ -24,7 +24,7 @@ class Dump:
             x.append(self.scenario.usr_list[i].x_list[-1])
             y.append(self.scenario.usr_list[i].y_list[-1])
             z.append(len(self.scenario.usr_list[i].messages_list))
-            l.append(self.scenario.usr_list[i].zones.values())
+            l.append(self.scenario.usr_list[i].myFuture[-1])
 
             # print("User id: ", self.scenario.usr_list[i].id, "position x: ", self.scenario.usr_list[i].x_list[-1] , "position y: ", self.scenario.usr_list[i].y_list[-1], "zones: ",self.scenario.usr_list[i].zones.values())
 
@@ -70,9 +70,12 @@ class Dump:
 
     ####### Connection duration list
 
-    def connectionDurationAndMore(self,contacts_per_slot_per_user,contents_per_slot_per_user):
+    def connectionDurationAndMore(self,contacts_per_slot_per_user,contents_per_slot_per_user,rzs_per_slot_per_user,contact_mean,contact_len_mean,a_per_content_only_value):
         with open('results/'+str(self.uid)+'/contacts-per-slot-per-user.json', 'w') as fp:
             json.dump(contacts_per_slot_per_user, fp)
+
+        with open('results/'+str(self.uid)+'/rzs-per-slot-per-user.json', 'w') as fp:
+            json.dump(rzs_per_slot_per_user, fp)
 
         with open('results/'+str(self.uid)+'/connection-duration-list.json', 'w') as fp2:
             json.dump(self.scenario.connection_duration_list, fp2)
@@ -82,6 +85,15 @@ class Dump:
 
         with open('results/'+str(self.uid)+'/connection-location-list.json', 'w') as fp4:
             json.dump(self.scenario.connection_location_list, fp4)
+
+        with open('results/'+str(self.uid)+'/contacts-mean.json', 'w') as fp5:
+            json.dump(contact_mean, fp5)
+
+        with open('results/'+str(self.uid)+'/contacts-mean-length.json', 'w') as fp6:
+            json.dump(contact_len_mean, fp6)
+
+        with open('results/'+str(self.uid)+'/a-per-content-only-value.json', 'w') as fp7:
+            json.dump(a_per_content_only_value, fp7)
 
     ####### Availability per zoi per slot
 

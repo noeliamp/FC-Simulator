@@ -1,4 +1,5 @@
 import numpy as np
+from collections import OrderedDict
 
 class Message:
     'Common base class for all messages'
@@ -11,6 +12,8 @@ class Message:
         self.counter = [0] * scenario.num_zois
         self.creation_slot = slot
         self.ttl = 0
+        self.prev_a_mean = OrderedDict()
+
         # self.displayMessage()
 
 
