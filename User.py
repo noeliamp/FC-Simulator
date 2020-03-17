@@ -70,8 +70,8 @@ class User:
         self.contacts_per_slot = OrderedDict()
         self.cross = False
         self.history = OrderedDict()
-        self.rz_visits_info = []
         self.current_rz = self.calculateZones(0)
+        self.rz_visits_info = []
         self.dicc_peers = OrderedDict()
         self.prev_contact_mean = OrderedDict()
         self.prev_contact_len_mean = OrderedDict()
@@ -227,7 +227,9 @@ class User:
             else:
                 self.myFuture[c] = self.myFuture[c-1]
                 
-        # print('My future: ', self.myFuture.values())  
+        # print(self.id, 'My future: ', self.myFuture.values()) 
+        # self.rz_visits_info.append(self.myFuture[0])
+ 
         self.list_of_zois_future.append(99)
         for v in self.myFuture.values():
             if self.list_of_zois_future[-1] != v:
@@ -276,52 +278,81 @@ class User:
                         self.dicc_peers[user.id].append(c)
 
                 # count contact length when the contact is over with that user
-                if user.id in self.dicc_peers:
-                    if c != self.dicc_peers[user.id][-1]:
+                if user.id in self.dicc_peers and c != 0:
+                    if c < self.scenario.num_slots-1 and c == self.dicc_peers[user.id][-1]+1:
                         ind = -1
                         coun = 0
-                        if len(self.dicc_peers[user.id]) == 1:
-                            coun = 1
+                        if -ind == len(self.dicc_peers[user.id]):
+                                coun = coun + 1
                         else:
-                            while self.dicc_peers[user.id][ind] == self.dicc_peers[user.id][ind-1]:
+                            while self.dicc_peers[user.id][ind] == self.dicc_peers[user.id][ind-1]+1:
                                 ind = ind - 1 
                                 coun = coun + 1
-                                if ind + 1 == len(self.dicc_peers[user.id]):
+                                if -ind == len(self.dicc_peers[user.id]):
+                                    coun = coun + 1
                                     break
-                        if self.current_rz not in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[self.current_rz] = coun
-                            self.contacts_count[self.current_rz] = 1
-                        else:
-                            self.prev_contact_len_mean[self.current_rz] = ((self.contacts_count[self.current_rz]*self.prev_contact_len_mean[self.current_rz]) + coun)/(self.contacts_count[self.current_rz]+1)
-                            self.contacts_count[self.current_rz] = self.contacts_count[self.current_rz] + 1
+                                if self.dicc_peers[user.id][ind] != self.dicc_peers[user.id][ind-1]+1:
+                                    coun = coun + 1
+                                    break
 
+                        if self.myFuture[c-1] in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.myFuture[c-1]] = ((self.contacts_count[self.myFuture[c-1]]*self.prev_contact_len_mean[self.myFuture[c-1]]) + coun)/(self.contacts_count[self.myFuture[c-1]]+1)
+                            self.contacts_count[self.myFuture[c-1]] = self.contacts_count[self.myFuture[c-1]] + 1
+
+                        if self.myFuture[c-1] not in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.myFuture[c-1]] = coun
+                            self.contacts_count[self.myFuture[c-1]] = 1
+
+                    if c == self.scenario.num_slots-1 and c == self.dicc_peers[user.id][-1]:
+                        ind = -1
+                        coun = 0
+                        while self.dicc_peers[user.id][ind] == self.dicc_peers[user.id][ind-1]+1:
+                            ind = ind - 1 
+                            coun = coun + 1
+                            if -ind == len(self.dicc_peers[user.id]):
+                                coun = coun + 1
+                                break
+
+                        if self.myFuture[c] in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.myFuture[c]] = ((self.contacts_count[self.myFuture[c]]*self.prev_contact_len_mean[self.myFuture[c]]) + coun)/(self.contacts_count[self.myFuture[c]]+1)
+                            self.contacts_count[self.myFuture[c]] = self.contacts_count[self.myFuture[c]] + 1
+                          
+
+                        if self.myFuture[c] not in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.myFuture[c]] = coun
+                            self.contacts_count[self.myFuture[c]] = 1
+                       
+                            
+                    
+            
         # statistics for decision making
         # computing the mean number of contacts
         if c == 0:
-            self.prev_contact_mean[self.current_rz] = len(self.contacts_per_slot[c])
-            self.prev_contact_len_mean[self.current_rz] = 0
+            self.prev_contact_mean[self.myFuture[c]] = len(self.contacts_per_slot[c])
+            self.prev_contact_len_mean[self.myFuture[c]] = 0
+            self.contacts_count[self.myFuture[c]] = 0
         else:
-            if self.current_rz not in self.prev_contact_mean:
-                self.prev_contact_mean[self.current_rz] = len(self.contacts_per_slot[c])
+            if self.myFuture[c] not in self.prev_contact_mean:
+                self.prev_contact_mean[self.myFuture[c]] = len(self.contacts_per_slot[c])
             else:
-                indexes = [i for i, n in enumerate(self.rz_visits_info) if n == self.current_rz]
-                index = indexes.index(c-1)
-                self.prev_contact_mean[self.current_rz] = ((index*self.prev_contact_mean[self.current_rz])+len(self.contacts_per_slot[c]))/(index+1)
+                indexes = [i for i, n in enumerate(self.rz_visits_info) if n == self.myFuture[c]]
+                index = indexes.index(c)
+                self.prev_contact_mean[self.myFuture[c]] = ((index*self.prev_contact_mean[self.myFuture[c]])+len(self.contacts_per_slot[c]))/(index+1)
 
         # computing the minimum from mean
-        if self.prev_contact_mean[self.current_rz] == 0:
+        if self.prev_contact_mean[self.myFuture[c]] == 0:
             min_stats_mean = 1
         else:
-            min_stats_mean = min(1,1/self.prev_contact_mean[self.current_rz])
+            min_stats_mean = min(1,1/self.prev_contact_mean[self.myFuture[c]])
 
         # computing the minimum from len_mean
-        if self.current_rz not in self.prev_contact_len_mean:
+        if self.myFuture[c] not in self.prev_contact_len_mean:
             min_stats_len_mean = 1
         else:
-            if self.prev_contact_len_mean[self.current_rz] == 0:
+            if self.prev_contact_len_mean[self.myFuture[c]] == 0:
                 min_stats_len_mean = 1
             else:
-                min_stats_len_mean = min(1,1/self.prev_contact_len_mean[self.current_rz])
+                min_stats_len_mean = min(1,1/self.prev_contact_len_mean[self.myFuture[c]])
 
 
         ### final mean
@@ -494,6 +525,7 @@ class User:
         for user in self.scenario.usr_list:
             if user.id != self.id:
                 pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
+                # check if user is neighbour
                 if pos_user < self.scenario.square_radius_of_tx:
                     self.contacts_per_slot[c].append(user.id)
                     if user.id not in self.dicc_peers.keys():
@@ -502,57 +534,84 @@ class User:
                     else:
                         self.dicc_peers[user.id].append(c)
 
-
                 # count contact length when the contact is over with that user
-                if user.id in self.dicc_peers:
-                    if c != self.dicc_peers[user.id][-1]:
+                if user.id in self.dicc_peers and c != 0:
+                    if c < self.scenario.num_slots-1 and c == self.dicc_peers[user.id][-1]+1:
                         ind = -1
                         coun = 0
-                        if len(self.dicc_peers[user.id]) == 1:
-                            coun = 1
+                        if -ind == len(self.dicc_peers[user.id]):
+                                coun = coun + 1
+                                print("entro aqui pal 1",len(self.dicc_peers[user.id]))
                         else:
-                            while self.dicc_peers[user.id][ind] == self.dicc_peers[user.id][ind-1]:
+                            while self.dicc_peers[user.id][ind] == self.dicc_peers[user.id][ind-1]+1:
                                 ind = ind - 1 
                                 coun = coun + 1
-                                if ind + 1 == len(self.dicc_peers[user.id]):
+                                if -ind == len(self.dicc_peers[user.id]):
+                                    coun = coun + 1
                                     break
-                        if self.current_rz not in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[self.current_rz] = coun
-                            self.contacts_count[self.current_rz] = 1
+                                if self.dicc_peers[user.id][ind] != self.dicc_peers[user.id][ind-1]+1:
+                                    coun = coun + 1
+                                    break
 
-                        else:
-                            self.prev_contact_len_mean[self.current_rz] = ((self.contacts_count[self.current_rz]*self.prev_contact_len_mean[self.current_rz]) + coun)/(self.contacts_count[self.current_rz]+1)
-                            self.contacts_count[self.current_rz] = self.contacts_count[self.current_rz] + 1
+                        if self.myFuture[c-1] in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.myFuture[c-1]] = ((self.contacts_count[self.myFuture[c-1]]*self.prev_contact_len_mean[self.myFuture[c-1]]) + coun)/(self.contacts_count[self.myFuture[c-1]]+1)
+                            self.contacts_count[self.myFuture[c-1]] = self.contacts_count[self.myFuture[c-1]] + 1
+                            
 
-                      
-        # statistics for decision making 
-        ## computing the mean
+                        if self.myFuture[c-1] not in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.myFuture[c-1]] = coun
+                            self.contacts_count[self.myFuture[c-1]] = 1
+                           
+
+                    if c == self.scenario.num_slots-1 and c == self.dicc_peers[user.id][-1]:
+                        ind = -1
+                        coun = 0
+                        while self.dicc_peers[user.id][ind] == self.dicc_peers[user.id][ind-1]+1:
+                            ind = ind - 1 
+                            coun = coun + 1
+                            if -ind == len(self.dicc_peers[user.id]):
+                                coun = coun + 1
+                                break
+
+                        if self.myFuture[c] in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.myFuture[c]] = ((self.contacts_count[self.myFuture[c]]*self.prev_contact_len_mean[self.myFuture[c]]) + coun)/(self.contacts_count[self.myFuture[c]]+1)
+                            self.contacts_count[self.myFuture[c]] = self.contacts_count[self.myFuture[c]] + 1
+                            
+
+                        if self.myFuture[c] not in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.myFuture[c]] = coun
+                            self.contacts_count[self.myFuture[c]] = 1
+                           
+
+                    
+        # statistics for decision making
+        # computing the mean number of contacts
         if c == 0:
-            # to compute the mean number of contacts
-            self.prev_contact_mean[self.current_rz] = len(self.contacts_per_slot[c])
-            self.prev_contact_len_mean[self.current_rz] = 0
+            self.prev_contact_mean[self.myFuture[c]] = len(self.contacts_per_slot[c])
+            self.prev_contact_len_mean[self.myFuture[c]] = 0
+            self.contacts_count[self.myFuture[c]] = 0
         else:
-            if self.current_rz not in self.prev_contact_mean:
-                self.prev_contact_mean[self.current_rz] = len(self.contacts_per_slot[c])
+            if self.myFuture[c] not in self.prev_contact_mean:
+                self.prev_contact_mean[self.myFuture[c]] = len(self.contacts_per_slot[c])
             else:
-                indexes = [i for i, n in enumerate(self.rz_visits_info) if n == self.current_rz]
-                index = indexes.index(c-1)
-                self.prev_contact_mean[self.current_rz] = ((index*self.prev_contact_mean[self.current_rz])+len(self.contacts_per_slot[c]))/(index+1)
+                indexes = [i for i, n in enumerate(self.rz_visits_info) if n == self.myFuture[c]]
+                index = indexes.index(c)
+                self.prev_contact_mean[self.myFuture[c]] = ((index*self.prev_contact_mean[self.myFuture[c]])+len(self.contacts_per_slot[c]))/(index+1)
                 
         ## computing the minimum
-        if self.prev_contact_mean[self.current_rz] == 0:
+        if self.prev_contact_mean[self.myFuture[c]] == 0:
             min_stats_mean = 1
         else:
-            min_stats_mean = min(1,1/self.prev_contact_mean[self.current_rz])
+            min_stats_mean = min(1,1/self.prev_contact_mean[self.myFuture[c]])
 
         # computing the minimum from len_mean
-        if self.current_rz not in self.prev_contact_len_mean:
+        if self.myFuture[c] not in self.prev_contact_len_mean:
             min_stats_len_mean = 1
         else:
-            if self.prev_contact_len_mean[self.current_rz] == 0:
+            if self.prev_contact_len_mean[self.myFuture[c]] == 0:
                 min_stats_len_mean = 1
             else:
-                min_stats_len_mean = min(1,1/self.prev_contact_len_mean[self.current_rz])
+                min_stats_len_mean = min(1,1/self.prev_contact_len_mean[self.myFuture[c]])
 
 
         ################ final mean

@@ -9,10 +9,12 @@ class Message:
         self.id = id
         self.scenario = scenario
         self.size = max_message_size
-        self.counter = [0] * scenario.num_zois
+        self.counter = [0] * (scenario.num_zois + 1)
         self.creation_slot = slot
         self.ttl = 0
         self.prev_a_mean = OrderedDict()
+        self.availability_counter_0 = 0
+        self.availability_counter_1 = 0
 
         # self.displayMessage()
 
