@@ -4,6 +4,7 @@ import math
 from collections import Counter 
 from collections import OrderedDict
 import sys
+import geopy.distance
 
 class User:
     'Common base class for all users'
@@ -70,7 +71,7 @@ class User:
         self.contacts_per_slot = OrderedDict()
         self.cross = False
         self.history = OrderedDict()
-        self.current_rz = self.calculateZones(0)
+        self.current_rz = None
         self.rz_visits_info = []
         self.dicc_peers = OrderedDict()
         self.prev_contact_mean = OrderedDict()
@@ -211,12 +212,17 @@ class User:
     def predict(self,nslots):
         self.list_of_zois_future = []
         for c in range(nslots):
-            if c in self.scenario.tracesDic[str(self.id)]:
-                items = self.scenario.tracesDic[str(self.id)][c]
+            if c in self.scenario.tracesDic[self.id]:
+                items = self.scenario.tracesDic[self.id][c]
                 x = items[0]
                 y = items[1]
                 for z in self.scenario.zois_list:
-                    d = np.power(x - z.x,2) + np.power(y - z.y,2)
+                    if self.scenario.city =="Paderborn" or self.scenario.city =="Luxembourg":
+                        d = np.power(x - z.x,2) + np.power(y - z.y,2)
+                    if self.scenario.city !="Paderborn" and self.scenario.city !="Luxembourg":
+                        coords_1 = (z.x, z.y)
+                        coords_2 = (x, y)
+                        d = geopy.distance.distance(coords_1, coords_2).m
                     if d < z.scenario.square_radius_of_replication:
                         self.myFuture[c] = z.id
                     if d < z.scenario.square_radius_of_interest:
@@ -225,7 +231,29 @@ class User:
                         if c not in self.myFuture:
                             self.myFuture[c] = -1 
             else:
-                self.myFuture[c] = self.myFuture[c-1]
+                if c == 0:
+                    # print(self.id,self.scenario.tracesDic[self.id].keys()[0])
+                    first_c = list(self.scenario.tracesDic[self.id].keys())[0]
+                    items = self.scenario.tracesDic[self.id][first_c]
+
+                    x = items[0]
+                    y = items[1]
+                    for z in self.scenario.zois_list:
+                        if self.scenario.city =="Paderborn" or self.scenario.city =="Luxembourg":
+                            d = np.power(x - z.x,2) + np.power(y - z.y,2)
+                        if self.scenario.city !="Paderborn" and self.scenario.city !="Luxembourg":
+                            coords_1 = (z.x, z.y)
+                            coords_2 = (x, y)
+                            d = geopy.distance.distance(coords_1, coords_2).m
+                        if d < z.scenario.square_radius_of_replication:
+                            self.myFuture[c] = z.id
+                        if d < z.scenario.square_radius_of_interest:
+                            self.myFuture[c] = z.id
+                        if d > z.scenario.square_radius_of_replication:
+                            if c not in self.myFuture:
+                                self.myFuture[c] = -1 
+                else:
+                    self.myFuture[c] = self.myFuture[c-1]
                 
         # print(self.id, 'My future: ', self.myFuture.values()) 
         # self.rz_visits_info.append(self.myFuture[0])
@@ -241,33 +269,39 @@ class User:
     # Method to read from the traces (stored in the scenario) each node's new position
     # This method will make a node move in every new slot to the next point in the list
     def readTraces(self,c):
-        if c in self.scenario.tracesDic[str(self.id)]:
-            items = self.scenario.tracesDic[str(self.id)][c]
+        if c in self.scenario.tracesDic[self.id]:
+            items = self.scenario.tracesDic[self.id][c]
             x = items[0]
             y = items[1]
-            speed = items[2]
+            # speed = items[2]
 
             # print("Next point: ", x, y)   
             self.x_list.append(x)
             self.y_list.append(y)
-            self.speed_list.append(speed)
+            # self.speed_list.append(speed)
 
         else:
             self.x_list.append(self.x_list[-1])
             self.y_list.append(self.y_list[-1])
-            self.speed_list.append(0)
+            # self.speed_list.append(0)
 
 
     # method to allow nodes to exchange within a RZ and in the surroundings taking into account a maximum elapse time
     def userContactOutIn(self,c):
         # print ("First -- My id is ", self.id, " Am I busy for this slot: ", self.busy)
         # add my current RZ to the list
-        self.rz_visits_info.append(self.current_rz)
+        self.rz_visits_info.append(self.myFuture[c])
 
         # Include the neighbours found in this slot for contacts statistics
         for user in self.scenario.usr_list:
             if user.id != self.id:
-                pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
+                if self.scenario.city =="Paderborn" or self.scenario.city =="Luxembourg":
+                    pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
+                if self.scenario.city != "Paderborn" and self.scenario.city !="Luxembourg":
+                    coords_1 = (user.x_list[-1], user.y_list[-1])
+                    coords_2 = (self.x_list[-1], self.y_list[-1])
+                    pos_user = geopy.distance.distance(coords_1, coords_2).m
+                    # print("Distancia---->",pos_user)
                 # check if user is neighbour
                 if pos_user < self.scenario.square_radius_of_tx:
                     self.contacts_per_slot[c].append(user.id)
@@ -338,6 +372,7 @@ class User:
                 indexes = [i for i, n in enumerate(self.rz_visits_info) if n == self.myFuture[c]]
                 index = indexes.index(c)
                 self.prev_contact_mean[self.myFuture[c]] = ((index*self.prev_contact_mean[self.myFuture[c]])+len(self.contacts_per_slot[c]))/(index+1)
+                    
 
         # computing the minimum from mean
         if self.prev_contact_mean[self.myFuture[c]] == 0:
@@ -519,12 +554,18 @@ class User:
     def userContact(self,c):
         # print ("My id is ", self.id, " Am I busy for this slot: ", self.busy)
         # add my current RZ to the list
-        self.rz_visits_info.append(self.current_rz)
+        self.rz_visits_info.append(self.myFuture[c])
 
         # Include the neighbours found in this slot for contacts statistics
         for user in self.scenario.usr_list:
             if user.id != self.id:
-                pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
+                if self.scenario.city =="Paderborn" or self.scenario.city =="Luxembourg":
+                    pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
+                if self.scenario.city != "Paderborn" and self.scenario.city !="Luxembourg":
+                    coords_1 = (user.x_list[-1], user.y_list[-1])
+                    coords_2 = (self.x_list[-1], self.y_list[-1])
+                    pos_user = geopy.distance.distance(coords_1, coords_2).m
+                    # print("Distancia---->",pos_user)
                 # check if user is neighbour
                 if pos_user < self.scenario.square_radius_of_tx:
                     self.contacts_per_slot[c].append(user.id)
@@ -541,7 +582,6 @@ class User:
                         coun = 0
                         if -ind == len(self.dicc_peers[user.id]):
                                 coun = coun + 1
-                                print("entro aqui pal 1",len(self.dicc_peers[user.id]))
                         else:
                             while self.dicc_peers[user.id][ind] == self.dicc_peers[user.id][ind-1]+1:
                                 ind = ind - 1 

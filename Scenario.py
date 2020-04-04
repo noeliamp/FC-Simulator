@@ -2,6 +2,8 @@ from Zoi import Zoi
 import numpy as np
 from collections import OrderedDict
 import re
+import os
+from datetime import datetime, timedelta
 
 
 class Scenario:
@@ -46,6 +48,7 @@ class Scenario:
         self.connection_location_list = OrderedDict()
         self.list_of_tuples_pos = []
         self.algorithm = algorithm
+        self.city = None
 
         # If we only define 1 zoi we assume it is going to be located in the center of the scenario
         if self.num_zois == 1:
@@ -56,20 +59,33 @@ class Scenario:
         if self.num_zois > 1:
             # In case we are running simulations based on maps points
             if traces_folder != "none":
-                f=open('traces/POIS/POI-0.wkt',"r")
+                if traces_folder == "Rome":
+                    self.city = "Rome"
+                if traces_folder == "SanFrancisco":
+                    self.city = "SanFrancisco"
+                if traces_folder == "Luxembourg":
+                    self.city = "Luxembourg"
+                if traces_folder != "SanFrancisco" and traces_folder != "Rome" and traces_folder != "Luxembourg":
+                    self.city="Paderborn"
+
+                    
+                f=open('traces/POIS/'+self.city+'-POI-0.wkt',"r")
                 lines=f.readlines()
                 # First we read the points from the file
                 for line in lines:
                     if line.startswith("POINT"):
                         num = re.findall(r'\d+(?:\.\d*)?', line)
                         numbers = [] 
-                        numbers.append(float(num[0]))
-                        numbers.append(float(num[1]))
+                        numbers.append(float(num[0]))   
+                        if self.city == 'SanFrancisco':
+                            numbers.append(-float(num[1]))
+                        else:
+                            numbers.append(float(num[1]))
 
                         self.list_of_tuples_pos.append(numbers)
                         break
 
-                f=open('traces/POIS/POI-1.wkt',"r")
+                f=open('traces/POIS/'+self.city+'-POI-1.wkt',"r")
                 lines=f.readlines()
                 # First we read the points from the file
                 for line in lines:
@@ -77,7 +93,10 @@ class Scenario:
                         num = re.findall(r'\d+(?:\.\d*)?', line)
                         numbers = [] 
                         numbers.append(float(num[0]))
-                        numbers.append(float(num[1]))
+                        if self.city == 'SanFrancisco':
+                            numbers.append(-float(num[1]))
+                        else:
+                            numbers.append(float(num[1]))
 
                         self.list_of_tuples_pos.append(numbers)
                         break 
@@ -107,7 +126,7 @@ class Scenario:
 
 
     # Traces parser for each scenario, we parse the traces after the scenario creation, depending on which folder (map) and file (specific traces for a given seed in that map)
-    def parseTraces(self, folder, file):
+    def parsePaderbornTraces(self, folder, file):
         f=open('traces/' + folder + '/'+ file +'_MovementNs2Report.txt',"r")
         lines=f.readlines()
         count = 0
@@ -124,7 +143,7 @@ class Scenario:
                 count += 1
             else:
                 count = 2
-                node = line[line.find("(")+1:line.find(")")]
+                node = int(line[line.find("(")+1:line.find(")")])
                 time = float(lp[2])
                 x = float(lp[5])
                 y = float(lp[6])
@@ -137,15 +156,104 @@ class Scenario:
                     self.tracesDic[node] = OrderedDict()
                     
                 # Stop storing positions if we already have 10000 slots     
-                if len(self.tracesDic[node]) <= 10000:
-                    self.tracesDic[node][time] = [x,y,speed]
+                # if len(self.tracesDic[node]) <= 10000:
+                self.tracesDic[node][time] = [x,y,speed]
             # print("node ", node , "time", time , "x", x, "y",y, "speed", speed)
 
 
            
+    # Traces parser for each scenario, we parse the traces after the scenario creation, depending on which folder (map) and file (specific traces for a given seed in that map)
+    def parseRomaTraces(self, folder, file):
+        replacementDicc= OrderedDict()
+        f=open('traces/' + folder + '/'+ file +'_Rome.txt',"r")
+        lines=f.readlines()
+        for line in lines:
+            lp = line.split(';')
+            node = lp[0]
+            time = lp[1].split('-')
+            time = time[2].split(':')
+            daysHours = time[0].split(' ')
+            days = ((int(daysHours[0])-1)*24)*3600
+            hours = int(daysHours[1])*3600
+            minutes = int(time[1])*60
+            if "." in time[2]:
+                seconds = int(time[2].split('.')[0])
+            else:
+                seconds = int(time[2].split('+')[0])
+
+            totalSeconds = days+hours+minutes+seconds
+            time = int(totalSeconds)
+            coordinates = re.findall("\d+\.\d+", lp[2])
+            x = float(coordinates[0])
+            y = float(coordinates[1])
+
+            # We add the line info to each node dictionary
+            if node not in replacementDicc:
+                replacementDicc[node] = OrderedDict()
+        
+            replacementDicc[node][time] = [x,y]
+            # print("node ", node , "time", time , "x", x, "y",y)
+
+        nodes_counter=0
+        for key,value in replacementDicc.items():
+            self.tracesDic[nodes_counter] = OrderedDict()
+            self.tracesDic[nodes_counter] = value
+            nodes_counter +=1 
+
+    def parseSanFranciscoTraces(self, folder):
+        counter_users = 0
+        folder = 'traces/' + folder
+        for filename in os.listdir(folder):
+            f=open(folder + '/'+ filename,"r")
+            lines=f.readlines()
+            for line in lines:
+                node = counter_users
+                lp = line.split(' ')
+                x = float(lp[0])
+                y = float(lp[1])
+                time = int(lp[3])
+
+                given_date_format = datetime.fromtimestamp(time).strftime('%d-%m-%Y %H:%M:%S')
+                given_date = datetime.strptime(given_date_format, '%d-%m-%Y %H:%M:%S')
+
+                fix_starting_date_format = datetime.fromtimestamp(1210975200).strftime('%d-%m-%Y %H:%M:%S')
+                fix_starting_date = datetime.strptime(fix_starting_date_format, '%d-%m-%Y %H:%M:%S')
+
+                time = given_date-fix_starting_date
+                time = time.total_seconds()
+
+                 # We add the line info to each node dictionary
+                if node not in self.tracesDic:
+                    self.tracesDic[node] = OrderedDict()
+
+                self.tracesDic[node][time] = [x,y]
 
 
+            counter_users += 1
+            if counter_users == self.num_users:
+                break
 
 
+    def parseLuxembourgTraces(self, folder,file):
+        replacementDicc= OrderedDict()
+        f=open('traces/' + folder + '/'+ file +'_Luxembourg.txt',"r")
+        lines=f.readlines()
+        for line in lines:
+            lp = line.split(' ')
+            node= int(lp[0])
+            time = float(lp[2])
+            time = int(time)
+            x = float(lp[4])
+            y=float(lp[5])
 
+            if node not in replacementDicc:
+                replacementDicc[node] = OrderedDict()
+            replacementDicc[node][time] = [x,y]
 
+        nodes_counter=0
+        for key,value in replacementDicc.items():
+            self.tracesDic[nodes_counter] = OrderedDict()
+            self.tracesDic[nodes_counter] = value
+            nodes_counter +=1 
+        
+        print("Cuantos nodos hay---> ", nodes_counter)

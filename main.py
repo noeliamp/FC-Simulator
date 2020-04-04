@@ -99,7 +99,7 @@ def dumping():
 
     ###################### Functions to dump data per simulation #########################
     dump = Dump(scenario,uid)
-    # dump.userLastPosition()
+    dump.userLastPosition()
     dump.connectionDurationAndMore(contacts_per_slot_per_user,contents_per_slot_per_user,rzs_per_slot_per_user,contact_mean,contact_len_mean,a_per_content_only_value)
     dump.con0exchange()
     dump.availabilityPerContent(a_per_content)
@@ -152,8 +152,18 @@ min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length,
 #     print(zoi.x, zoi.y)
 
 ################## Parse traces in case we are using them
-if traces_folder != "none":
-    scenario.parseTraces(traces_folder,traces_file)
+if traces_folder == "none" and traces_folder != "Rome" and traces_folder != "SanFrancisco" and traces_folder != "Luxembourg":
+    scenario.parsePaderbornTraces(traces_folder,traces_file)
+
+if traces_folder == "Rome":
+    scenario.parseRomaTraces(traces_folder,traces_file)
+
+if traces_folder == "SanFrancisco":
+    scenario.parseSanFranciscoTraces(traces_folder)
+
+if traces_folder == "Luxembourg":
+    scenario.parseLuxembourgTraces(traces_folder,traces_file)
+
 
 # CREATION OF CONTENTS at the beginning of simulation for all nodes
 # for m in range(0,num_contents):
@@ -172,8 +182,10 @@ for i in range(0,num_users):
     # Look for the initial position of each node only if we are using traces
     if traces_folder != "none":
         # print("Initial Position: ", scenario.tracesDic[str(i)].items()[0][1][0],scenario.tracesDic[str(i)].items()[0][1][1])
-        x = scenario.tracesDic[str(i)].items()[0][1][0]
-        y = scenario.tracesDic[str(i)].items()[0][1][1] 
+        print(i, scenario.tracesDic[i])
+        print(scenario.tracesDic[i].items())
+        x = scenario.tracesDic[i].items()[0][1][0]
+        y = scenario.tracesDic[i].items()[0][1][1] 
         user = User(i,x,y, scenario,max_memory,max_time_elapsed)
         user.predict(num_slots)
         
@@ -250,7 +262,6 @@ while c < num_slots:
             np.random.shuffle(scenario.usr_list)
             for u in scenario.usr_list:
                 if u.myFuture[c] != -1:
-                    print(u.myFuture[c])
                     # print("User id ", u.id)
                     msg = Message(uuid.uuid4(),content_size,scenario,c)
                     # print("Creating contents at slot: ", c)
@@ -315,117 +326,87 @@ while c < num_slots:
     ################################## Availability ############################################
     # we add the current slot availability to the list
     for z in scenario.zois_list:
-        # if there are no nodes in the RZs
-        if nodes_in_zoi[z.id][c] == 0:
-            for m in z.content_list:
-                if str(m.id) not in a_per_content:
-                    if c % 20 == 0 and c!=0:
-                        a_per_content[str(m.id)] = OrderedDict()
-                        a_per_content[str(m.id)][0] = [0] * int((c/20))
-                        a_per_content[str(m.id)][1] = [0] * int((c/20))
-                    if c == 0:
-                        a_per_content[str(m.id)] = OrderedDict()
-                        a_per_content[str(m.id)][0]= [0]
-                        a_per_content[str(m.id)][1] = [0]
+        for m in z.content_list:
+            if str(m.id) not in a_per_content:
+                if c % 20 == 0 and c!= 0:
+                    a_per_content[str(m.id)] = OrderedDict()
+                    a_per_content[str(m.id)][0] = [0] * int(c/20)
+                    a_per_content[str(m.id)][1] = [0] * int(c/20)
+                if c == 0:
+                    a_per_content[str(m.id)] = OrderedDict()
+                    a_per_content[str(m.id)][0]= []
+                    a_per_content[str(m.id)][1] = []
 
-                    a_per_content_only_value[str(m.id)] = OrderedDict()
-                    a_per_content_only_value[str(m.id)][0] = 0
-                    a_per_content_only_value[str(m.id)][1] = 0
+                a_per_content_only_value[str(m.id)] = OrderedDict()
+                a_per_content_only_value[str(m.id)][0] = 0
+                a_per_content_only_value[str(m.id)][1] = 0
 
-                if c % 20 == 0:
-                    a_per_content[str(m.id)][0].append(0)
-                    a_per_content[str(m.id)][1].append(0)
-                #check if the content is totally dead, otherwise we keep adding 0 to the statistics
-                if m.counter[2] > 0:
-                    # a_per_content[str(m.id)][0].append(0.00000000001)
-                    # a_per_content[str(m.id)][1].append(0.00000000001)
-                    if a_per_content_only_value[str(m.id)][0] != 0:
-                        a_per_content_only_value[str(m.id)][0] = ((m.availability_counter_0*a_per_content_only_value[str(m.id)][0])+(0))/(m.availability_counter_0+1)
-                        m.availability_counter_0 = m.availability_counter_0 + 1
-
-                    if a_per_content_only_value[str(m.id)][0] == 0:
-                        m.availability_counter_0 = m.availability_counter_0 + 1
-                    
-                    if a_per_content_only_value[str(m.id)][1] != 0:
-                        a_per_content_only_value[str(m.id)][1] = ((m.availability_counter_1*a_per_content_only_value[str(m.id)][1])+(0))/(m.availability_counter_1+1)
-                        m.availability_counter_1 = m.availability_counter_1 + 1
-
-                    if a_per_content_only_value[str(m.id)][1] == 0:
-                        m.availability_counter_1 = m.availability_counter_1 + 1
-
-                ### replicas
-                if str(m.id) not in replicas:
-                    if c % 20 == 0 and c!=0:
-                        replicas[str(m.id)] = OrderedDict()
-                        replicas[str(m.id)][0] = [0] * int((c/20))
-                        replicas[str(m.id)][1] = [0] * int((c/20))
-
-                    if c == 0:
-                        replicas[str(m.id)] = OrderedDict()
-                        replicas[str(m.id)][0]= [0]
-                        replicas[str(m.id)][1] = [0]
-
-                if str(m.id) in replicas:
-                    if c % 20 == 0:
-                        replicas[str(m.id)][0].append(0)
-                        replicas[str(m.id)][1].append(0)
-
-        # if there are nodes in the RZs
-        if nodes_in_zoi[z.id][c] != 0:
-            for m in z.content_list:
-                if str(m.id) not in a_per_content:
-                    if c % 20 == 0 and c!= 0:
-                        a_per_content[str(m.id)] = OrderedDict()
-                        a_per_content[str(m.id)][0] = [0] * int((c/20))
-                        a_per_content[str(m.id)][1] = [0] * int((c/20))
-                    if c == 0:
-                        a_per_content[str(m.id)] = OrderedDict()
-                        a_per_content[str(m.id)][0]= [0]
-                        a_per_content[str(m.id)][1] = [0]
-
-                    a_per_content_only_value[str(m.id)] = OrderedDict()
-                    a_per_content_only_value[str(m.id)][0] = 0
-                    a_per_content_only_value[str(m.id)][1] = 0
-
-                if c % 20 == 0:
+            # first add availability for ZOI 0
+            if c % 20 == 0:
+                if nodes_in_zoi[0][c] != 0:
                     a_per_content[str(m.id)][0].append(m.counter[0]/nodes_in_zoi[0][c])
-                if a_per_content_only_value[str(m.id)][0] != 0:
+                else:
+                    if m.counter[2] > 0 or m.counter[1]>0:
+                        a_per_content[str(m.id)][0].append(0.000000000001)
+                    else:
+                        a_per_content[str(m.id)][0].append(0)
+
+            if a_per_content_only_value[str(m.id)][0] != 0:
+                if nodes_in_zoi[0][c] != 0:
                     a_per_content_only_value[str(m.id)][0] = ((m.availability_counter_0*a_per_content_only_value[str(m.id)][0])+(m.counter[0]/nodes_in_zoi[0][c]))/(m.availability_counter_0+1)
-                    m.availability_counter_0 = m.availability_counter_0 + 1
+                else:
+                    a_per_content_only_value[str(m.id)][0] = ((m.availability_counter_0*a_per_content_only_value[str(m.id)][0])+(0))/(m.availability_counter_0+1)
+                m.availability_counter_0 = m.availability_counter_0 + 1
 
 
-                if a_per_content_only_value[str(m.id)][0] == 0:
+            if a_per_content_only_value[str(m.id)][0] == 0:
+                if nodes_in_zoi[0][c] != 0:
                     a_per_content_only_value[str(m.id)][0] = m.counter[0]/nodes_in_zoi[0][c]
-                    m.availability_counter_0 = m.availability_counter_0 + 1
+                else:
+                    a_per_content_only_value[str(m.id)][0] = 0
+                m.availability_counter_0 = m.availability_counter_0 + 1
 
-                if c % 20 == 0:
+            # Second add availability for ZOI 1
+            if c % 20 == 0:
+                if nodes_in_zoi[1][c] !=0:
                     a_per_content[str(m.id)][1].append(m.counter[1]/nodes_in_zoi[1][c])
-                if a_per_content_only_value[str(m.id)][1] != 0:
+                else:
+                    if m.counter[2] > 0 or m.counter[0]>0:
+                        a_per_content[str(m.id)][1].append(0.000000000001)
+                    else:
+                        a_per_content[str(m.id)][1].append(0)
+
+            if a_per_content_only_value[str(m.id)][1] != 0:
+                if nodes_in_zoi[1][c] !=0:
                     a_per_content_only_value[str(m.id)][1] = ((m.availability_counter_1*a_per_content_only_value[str(m.id)][1])+(m.counter[1]/nodes_in_zoi[1][c]))/(m.availability_counter_1+1)
-                    m.availability_counter_1 = m.availability_counter_1 + 1
+                else:
+                    a_per_content_only_value[str(m.id)][1] = ((m.availability_counter_1*a_per_content_only_value[str(m.id)][1])+(0))/(m.availability_counter_1+1)
+                m.availability_counter_1 = m.availability_counter_1 + 1
 
 
-                if a_per_content_only_value[str(m.id)][1] == 0:
+            if a_per_content_only_value[str(m.id)][1] == 0:
+                if nodes_in_zoi[1][c] != 0:
                     a_per_content_only_value[str(m.id)][1] = m.counter[1]/nodes_in_zoi[1][c]
-                    m.availability_counter_1 = m.availability_counter_1 + 1
-            
+                else:
+                    a_per_content_only_value[str(m.id)][1] = 0
+                m.availability_counter_1 = m.availability_counter_1 + 1
+        
 
-                ### replicas
-                if str(m.id) not in replicas:
-                    if c % 20 == 0 and c!= 0:
-                        replicas[str(m.id)] = OrderedDict()
-                        replicas[str(m.id)][0] = [0] * int((c/20))
-                        replicas[str(m.id)][1] = [0] * int((c/20))
+            ### replicas
+            if str(m.id) not in replicas:
+                if c % 20 == 0 and c!= 0:
+                    replicas[str(m.id)] = OrderedDict()
+                    replicas[str(m.id)][0] = [0] * int((c/20))
+                    replicas[str(m.id)][1] = [0] * int((c/20))
 
-                    if c == 0:
-                        replicas[str(m.id)] = OrderedDict()
-                        replicas[str(m.id)][0]= [0]
-                        replicas[str(m.id)][1] = [0]
+                if c == 0:
+                    replicas[str(m.id)] = OrderedDict()
+                    replicas[str(m.id)][0]= []
+                    replicas[str(m.id)][1] = []
 
-                if str(m.id) in replicas:
-                    if c % 20 == 0:
-                        replicas[str(m.id)][0].append(m.counter[0])
-                        replicas[str(m.id)][1].append(m.counter[1])
+            if c % 20 == 0:
+                replicas[str(m.id)][0].append(m.counter[0])
+                replicas[str(m.id)][1].append(m.counter[1])
         
         # print("availability: ", m.counter[z.id],nodes_in_zoi[z.id][c], a_per_content[str(m.id)][z.id],m.counter[z.id])
     
