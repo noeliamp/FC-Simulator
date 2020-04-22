@@ -10,6 +10,8 @@ class Message:
         self.scenario = scenario
         self.size = max_message_size
         self.counter = [0] * (scenario.num_zois + 1)
+        for i in range(scenario.num_zois+1):
+            self.counter[i] = 0
         self.creation_slot = slot
         self.ttl = 0
         self.prev_a_mean = OrderedDict()

@@ -82,11 +82,7 @@ np.random.seed(seed_list[seed])
 print("Content size ", content_size)
 print("Max memory ", max_memory)
 
-# Frpm here on, start printing out to an external file called out
-orig_stdout = sys.stdout
-# f = open(os.devnull, 'w')
-f = open('results/'+str(uid)+'/out.txt', 'w')
-sys.stdout = f      
+  
 
 
 def dumping():
@@ -108,11 +104,7 @@ def dumping():
     # dump.nodesPath()
     # dump.nodesInRz()
     
-# Simulation STARTS!!!
-# progress bar
-bar = progressbar.ProgressBar(maxval=num_slots, \
-    widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-bar.start()
+
 
 # DATA STRUCTURES 
 contacts_per_slot_per_user= OrderedDict()
@@ -123,7 +115,7 @@ contact_mean = OrderedDict()
 
 usr_list = []        # list of users in the entire scenario
 nodes_in_zoi = OrderedDict()
-c = 0 # Slot number
+c = 1 # Slot number
 attempts = []
 a_per_content = OrderedDict()
 replicas = OrderedDict()
@@ -145,7 +137,7 @@ else:
 
 # CREATION OF SCENARIO With num_zois number of zois
 scenario = Scenario(radius_of_interest, radius_of_replication, max_area,speed_distribution,pause_distribution,min_pause,max_pause, 
-min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution,hand_shake,num_zois, traces_folder,num_slots,algorithm)
+min_speed,max_speed,delta,radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution,hand_shake,num_zois, traces_folder,num_slots,algorithm,max_memory,max_time_elapsed)
 
 # print("Number of zois and positions: ", len(scenario.zois_list))
 # for zoi in scenario.zois_list:
@@ -177,27 +169,19 @@ for z in scenario.zois_list:
     nodes_in_zoi[z.id] = OrderedDict()
     nodes_in_zoi[z.id][0] = 0
 
-# CREATION OF USERS
-for i in range(0,num_users):
-    # Look for the initial position of each node only if we are using traces
-    if traces_folder != "none":
-        # print("Initial Position: ", scenario.tracesDic[str(i)].items()[0][1][0],scenario.tracesDic[str(i)].items()[0][1][1])
-        print(i, scenario.tracesDic[i])
-        print(scenario.tracesDic[i].items())
-        x = scenario.tracesDic[i].items()[0][1][0]
-        y = scenario.tracesDic[i].items()[0][1][1] 
-        user = User(i,x,y, scenario,max_memory,max_time_elapsed)
-        user.predict(num_slots)
-        
-    # If we are not using traces, the initial position is random
-    else:
+# CREATION OF USERS without traces
+if traces_folder == "none":
+    for i in range(0,scenario.num_users):
         user = User(i,np.random.uniform(-max_area, max_area),np.random.uniform(-max_area, max_area), scenario,max_memory,max_time_elapsed)
+        scenario.usr_list.append(user)
 
-    usr_list.append(user)
+# CREATION OF USERS with traces
+if traces_folder != "none":
+    print("entrando en add remove")
+    scenario.addRemoveNodes(0)
 
 
-# add the list of users to every scenario and create the initial contents
-scenario.usr_list = usr_list
+
 # userCounter=0
 # np.random.shuffle(scenario.usr_list)
 # for u in scenario.usr_list:
@@ -232,6 +216,20 @@ for z in scenario.zois_list:
         a_per_content_only_value[str(m.id)][1] = 0
 
 
+
+
+# Frpm here on, start printing out to an external file called out
+orig_stdout = sys.stdout
+# f = open(os.devnull, 'w')
+f = open('results/'+str(uid)+'/out.txt', 'w')
+sys.stdout = f    
+
+
+# Simulation STARTS!!!
+# progress bar
+bar = progressbar.ProgressBar(maxval=num_slots, \
+    widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+bar.start()
 ################## ################## Loop per slot into a simulation ################## ##################
 while c < num_slots:
     bar.update(c)
@@ -280,47 +278,48 @@ while c < num_slots:
     # Run mobility for every slot           
     # Nobody should be BUSY at the beginning of a slot (busy means that the node has had a connection already in the current slot, so it cannot have another one)
     # Move every pedestrian once
-    for j in range(0,num_users):
-        scenario.usr_list[j].busy = False
+    for j in scenario.usr_list:
+        j.busy = False
         if traces_folder == "none":
-            scenario.usr_list[j].randomDirection()
+            j.randomDirection()
             # Check the new point zone of the user
-            scenario.usr_list[j].calculateZones(c)
+            j.calculateZones(c)
         else:
-            scenario.usr_list[j].readTraces(c)
+            j.readTraces(c)
 
-        if scenario.usr_list[j].myFuture[c] == -1:
+        if j.myFuture[c] == -1:
             for z in scenario.zois_list:
-                scenario.usr_list[j].checkDB(z,c)
-                scenario.usr_list[j].checkHistory(c)
+                j.checkDB(z,c)
+                j.checkHistory(c)
 
 
     # Run contacts for every slot after mobility.
-    for k in range(0,num_users):
+    for k in scenario.usr_list:
         # run users contact
-        scenario.usr_list[k].hand_shake = hand_shake/delta
-        scenario.usr_list[k].contacts_per_slot[c] = []
-        scenario.usr_list[k].calculateZones(c)
+        k.hand_shake = hand_shake/delta
+        k.contacts_per_slot[c] = []
+        k.calculateZones(c)
         if scenario.algorithm == 'out':
-            scenario.usr_list[k].userContactOutIn(c)
+            k.userContactOutIn(c)
         if scenario.algorithm == 'in':
-            scenario.usr_list[k].userContact(c)
+            k.userContact(c)
 
     # count attempts of connections per slot
     attempts.append(scenario.attempts)
+    scenario.addRemoveNodes(c)
 
     # After moving the nodes and exchanging content, check to which zone they belong to increase the right counter
-    for j in range(0,num_users):
-        if scenario.usr_list[j].myFuture[c] != -1:
-            nodes_in_zoi[scenario.usr_list[j].myFuture[c]][c] += 1
+    for j in scenario.usr_list:
+        if j.myFuture[c] != -1:
+            nodes_in_zoi[j.myFuture[c]][c] += 1
             # Increment the content counter after moving and exchanging
-            for m in scenario.usr_list[j].messages_list:
-                m.counter[scenario.usr_list[j].myFuture[c]] += 1
+            for m in j.messages_list:
+                m.counter[j.myFuture[c]] += 1
 
         # only to count if there are messages out of the zois  
-        if scenario.usr_list[j].myFuture[c] == -1:
+        if j.myFuture[c] == -1:
             # Increment the content counter after moving and exchanging
-            for m in scenario.usr_list[j].messages_list:
+            for m in j.messages_list:
                 m.counter[2] += 1
             
     ################################## Availability ############################################
@@ -328,7 +327,7 @@ while c < num_slots:
     for z in scenario.zois_list:
         for m in z.content_list:
             if str(m.id) not in a_per_content:
-                if c % 20 == 0 and c!= 0:
+                if c % 20 == 0:
                     a_per_content[str(m.id)] = OrderedDict()
                     a_per_content[str(m.id)][0] = [0] * int(c/20)
                     a_per_content[str(m.id)][1] = [0] * int(c/20)
@@ -416,31 +415,30 @@ while c < num_slots:
                 contents_per_slot_per_user[u.id]= []
             contents_per_slot_per_user[u.id].append(len(u.messages_list))
 
-    if c != 0 and c % 43200 == 0 or c == num_slots - 2:
+    if c != 0 and c % 100 == 0 or c == num_slots - 2:
         dumping()
 
     # print("SLOT NUMBER: ", c)
     c += 1
-    bar.update(c)
     ################################## ############## ############################################
 
 # At the end of every simulation we need to close connections and add them to the list of connection durations
-for k in range(0,num_users):
-    if scenario.usr_list[k].ongoing_conn == True:
-        if scenario.usr_list[k].connection_duration not in scenario.connection_duration_list.keys():
-            scenario.connection_duration_list[scenario.usr_list[k].connection_duration] = 1
+for k in scenario.usr_list:
+    if k.ongoing_conn == True:
+        if k.connection_duration not in scenario.connection_duration_list.keys():
+            scenario.connection_duration_list[k.connection_duration] = 1
         else:
-            scenario.connection_duration_list[scenario.usr_list[k].connection_duration] +=1
+            scenario.connection_duration_list[k.connection_duration] +=1
 
-        scenario.usr_list[k].ongoing_conn = False
-        scenario.usr_list[k].prev_peer.ongoing_conn = False
-        # print("CONNEC DURATION out--> ", scenario.usr_list[k].connection_duration)
+        k.ongoing_conn = False
+        k.prev_peer.ongoing_conn = False
+        # print("CONNEC DURATION out--> ", k.connection_duration)
 
          # Add the location of the connection
-        if scenario.usr_list[k].myFuture[num_slots-1] not in scenario.usr_list[k].scenario.connection_location_list.keys():
-            scenario.usr_list[k].scenario.connection_location_list[scenario.usr_list[k].myFuture[num_slots-1]] = 1
+        if k.myFuture[num_slots-1] not in k.scenario.connection_location_list.keys():
+            k.scenario.connection_location_list[k.myFuture[num_slots-1]] = 1
         else:
-            scenario.usr_list[k].scenario.connection_location_list[scenario.usr_list[k].myFuture[num_slots-1]] +=1
+            k.scenario.connection_location_list[k.myFuture[num_slots-1]] +=1
 
 
 dumping()

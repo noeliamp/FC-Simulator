@@ -20,13 +20,13 @@ class Dump:
         l = []
         ids = []
         zois = []
-        print(self.scenario.num_users)
-        for i in range(0,self.scenario.num_users):
-            x.append(self.scenario.usr_list[i].x_list[-1])
-            y.append(self.scenario.usr_list[i].y_list[-1])
-            z.append(len(self.scenario.usr_list[i].messages_list))
-            print(self.scenario.usr_list[i].myFuture)
-            l.append(self.scenario.usr_list[i].myFuture[len(self.scenario.usr_list[i].myFuture)-1])
+        print(len(self.scenario.usr_list))
+        for i in self.scenario.usr_list:
+            x.append(i.x_list[-1])
+            y.append(i.y_list[-1])
+            z.append(len(i.messages_list))
+            print(i.myFuture)
+            l.append(i.myFuture[len(i.myFuture)-1])
 
             # print("User id: ", self.scenario.usr_list[i].id, "position x: ", self.scenario.usr_list[i].x_list[-1] , "position y: ", self.scenario.usr_list[i].y_list[-1], "zones: ",self.scenario.usr_list[i].zones.values())
 
@@ -52,8 +52,8 @@ class Dump:
             file.write(json.dumps("&"))
             file.write(json.dumps(self.scenario.radius_of_replication))
 
-        for i in range(0,self.scenario.num_users):
-            ids.append(self.scenario.usr_list[i].id)
+        for i in self.scenario.usr_list:
+            ids.append(i.id)
 
         for i in self.scenario.zois_list:
             zois.append(i.id)

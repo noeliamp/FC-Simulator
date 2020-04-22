@@ -4,13 +4,15 @@ from collections import OrderedDict
 import re
 import os
 from datetime import datetime, timedelta
+from User import User
+import json
 
 
 class Scenario:
     'Common base class for all scenarios'
 
     def __init__(self, radius_of_interest, radius_of_replication, max_area, speed_distribution,pause_distribution,min_pause,max_pause,min_speed,max_speed,delta,
-    radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois,traces_folder,num_slots, algorithm):
+    radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois,traces_folder,num_slots, algorithm,max_memory,max_time_elpased):
         # print ("Creating new scenario...")
         self.num_slots = num_slots
         self.square_radius_of_interest = radius_of_interest*radius_of_interest
@@ -49,6 +51,16 @@ class Scenario:
         self.list_of_tuples_pos = []
         self.algorithm = algorithm
         self.city = None
+        self.max_memory = max_memory
+        self.max_time_elapsed = max_time_elpased
+        self.inside_anchorzone = []
+        self.beta = 0.8
+        self.alpha = 0.5
+        self.gamma = 0.8
+        self.rho = 1/3
+        self.sigma = 1/3
+        self.tau = 1/3
+
 
         # If we only define 1 zoi we assume it is going to be located in the center of the scenario
         if self.num_zois == 1:
@@ -188,10 +200,13 @@ class Scenario:
             y = float(coordinates[1])
 
             # We add the line info to each node dictionary
-            if node not in replacementDicc:
-                replacementDicc[node] = OrderedDict()
+            if time < self.num_slots:
+
+                if node not in replacementDicc:
+                    replacementDicc[node] = OrderedDict()
         
-            replacementDicc[node][time] = [x,y]
+                replacementDicc[node][time] = [x,y]
+           
             # print("node ", node , "time", time , "x", x, "y",y)
 
         nodes_counter=0
@@ -200,8 +215,12 @@ class Scenario:
             self.tracesDic[nodes_counter] = value
             nodes_counter +=1 
 
+        print("Cuantos nodos hay---> ", nodes_counter)
+        self.num_users = nodes_counter
+
     def parseSanFranciscoTraces(self, folder):
         counter_users = 0
+        replacementDicc= OrderedDict()
         folder = 'traces/' + folder
         for filename in os.listdir(folder):
             f=open(folder + '/'+ filename,"r")
@@ -216,44 +235,101 @@ class Scenario:
                 given_date_format = datetime.fromtimestamp(time).strftime('%d-%m-%Y %H:%M:%S')
                 given_date = datetime.strptime(given_date_format, '%d-%m-%Y %H:%M:%S')
 
-                fix_starting_date_format = datetime.fromtimestamp(1210975200).strftime('%d-%m-%Y %H:%M:%S')
+                fix_starting_date_format = datetime.fromtimestamp(1211018400).strftime('%d-%m-%Y %H:%M:%S')
                 fix_starting_date = datetime.strptime(fix_starting_date_format, '%d-%m-%Y %H:%M:%S')
 
                 time = given_date-fix_starting_date
                 time = time.total_seconds()
 
                  # We add the line info to each node dictionary
-                if node not in self.tracesDic:
-                    self.tracesDic[node] = OrderedDict()
+                    
+                if time < self.num_slots:
+                    if node not in replacementDicc:
+                        replacementDicc[node] = OrderedDict()
+                        self.tracesDic[node] = OrderedDict()
 
-                self.tracesDic[node][time] = [x,y]
+                    replacementDicc[node][time] = [x,y]
+                    print(time)
+
+            if node in replacementDicc.keys():
+                for k,v in reversed(replacementDicc[node].items()):
+                    self.tracesDic[node][k] = v
+
+                counter_users += 1
+            # if counter_users == self.num_users:
+            #     break
+        self.num_users = counter_users
+        print("Cuantos nodos hay---> ", self.num_users )
 
 
-            counter_users += 1
-            if counter_users == self.num_users:
-                break
+
+
+    # def parseLuxembourgTraces(self, folder,file):
+    #     replacementDicc= OrderedDict()
+    #     f=open('traces/' + folder + '/'+ file +'_Luxembourg.txt',"r")
+    #     lines=f.readlines()
+    #     for line in lines:
+    #         lp = line.split(' ')
+    #         node= int(lp[0])
+    #         time = float(lp[2])
+    #         time = int(time)
+    #         x = float(lp[4])
+    #         y=float(lp[5])
+
+    #         if node not in replacementDicc:
+    #             replacementDicc[node] = OrderedDict()
+    #         replacementDicc[node][time] = [x,y]
+
+    #     nodes_counter=0
+    #     for key,value in replacementDicc.items():
+    #         self.tracesDic[nodes_counter] = OrderedDict()
+    #         self.tracesDic[nodes_counter] = value
+    #         nodes_counter +=1 
+        
+    #     print("Cuantos nodos hay---> ", nodes_counter)
+    #     self.num_users = nodes_counter
 
 
     def parseLuxembourgTraces(self, folder,file):
-        replacementDicc= OrderedDict()
-        f=open('traces/' + folder + '/'+ file +'_Luxembourg.txt',"r")
-        lines=f.readlines()
-        for line in lines:
-            lp = line.split(' ')
-            node= int(lp[0])
-            time = float(lp[2])
-            time = int(time)
-            x = float(lp[4])
-            y=float(lp[5])
+        with open('traces/' + folder + '/tracesLux-'+file+'.json', 'r') as fp:
+                data = json.load(fp, object_pairs_hook=OrderedDict)
+            
 
-            if node not in replacementDicc:
-                replacementDicc[node] = OrderedDict()
-            replacementDicc[node][time] = [x,y]
+        for k,v in data.items():
+            self.tracesDic[int(k)] = OrderedDict()
+            for key,value in v.items():
+                self.tracesDic[int(k)][int(key)]=[]
+                for coord in value:
+                    self.tracesDic[int(k)][int(key)].append(float(coord))
+       
+        print("Cuantos nodos hay---> ", len(self.tracesDic))
+        self.num_users = len(self.tracesDic)
 
-        nodes_counter=0
-        for key,value in replacementDicc.items():
-            self.tracesDic[nodes_counter] = OrderedDict()
-            self.tracesDic[nodes_counter] = value
-            nodes_counter +=1 
+
+        for k,v in self.tracesDic.items():
+            self.inside_anchorzone.append(len(self.tracesDic[k].keys()))
+            print("Ha estado dentro:", k, len(self.tracesDic[k].keys()))
+
+        print("average--->",np.average(self.inside_anchorzone))
         
-        print("Cuantos nodos hay---> ", nodes_counter)
+
+        # print(self.tracesDic)
+
+    def addRemoveNodes(self,c):
+        for k,v in self.tracesDic.items():
+            if self.tracesDic[k].keys()[0] == c:
+                x = self.tracesDic[k].items()[0][1][0]
+                y = self.tracesDic[k].items()[0][1][1] 
+                print("El nodo", k, " entra en", c)
+                user = User(k,x,y, self,self.max_memory,self.max_time_elapsed)
+                self.usr_list.append(user)
+                user.predict(self.num_slots)
+                print(c, len(user.myFuture),user.myFuture[c],user.rz_visits_info)
+                user.rz_visits_info.append(user.myFuture[c])
+
+
+            if self.tracesDic[k].keys()[-1] == c:
+                print("El nodo", k, " sale en", c)
+                for u in self.usr_list:
+                    if k == u.id:
+                        self.usr_list.remove(u)            

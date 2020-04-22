@@ -69,6 +69,7 @@ class User:
         self.max_time_elapsed = max_time_elapsed
         self.myFuture = OrderedDict()
         self.contacts_per_slot = OrderedDict()
+        self.contacts_list = [0]* range(len(self.scenario.usr_list))
         self.cross = False
         self.history = OrderedDict()
         self.current_rz = None
@@ -77,6 +78,14 @@ class User:
         self.prev_contact_mean = OrderedDict()
         self.prev_contact_len_mean = OrderedDict()
         self.contacts_count = OrderedDict()
+        self.self_interests = [np.randint(0, 9) for p in range(0, np.randint(0, 9))]
+        self.self_relations = [np.randint(0, len(self.scenario.usr_list)) for p in range(0, np.randint(0, len(self.scenario.usr_list)))]
+        self.contacts_interests = [0]*range(10)
+        self.contacts_relations = [0]*range(len(self.scenario.usr_list))
+        self.simPro = [0]*range(len(self.scenario.usr_list))
+        self.simInt = [0]*range(len(self.scenario.usr_list))
+        self.simSoc = [0]*range(len(self.scenario.usr_list))
+        self.ego = np.zeros((len(self.scenario.usr_list), len(self.scenario.usr_list)))
 
         # self.displayUser()
 
@@ -219,17 +228,28 @@ class User:
                 for z in self.scenario.zois_list:
                     if self.scenario.city =="Paderborn" or self.scenario.city =="Luxembourg":
                         d = np.power(x - z.x,2) + np.power(y - z.y,2)
+                        if d < z.scenario.square_radius_of_replication:
+                            self.myFuture[c] = z.id
+                        if d < z.scenario.square_radius_of_interest:
+                            self.myFuture[c] = z.id
+                        if d > z.scenario.square_radius_of_replication:
+                            if c not in self.myFuture:
+                                self.myFuture[c] = -1 
+
+
+
                     if self.scenario.city !="Paderborn" and self.scenario.city !="Luxembourg":
                         coords_1 = (z.x, z.y)
                         coords_2 = (x, y)
                         d = geopy.distance.distance(coords_1, coords_2).m
-                    if d < z.scenario.square_radius_of_replication:
-                        self.myFuture[c] = z.id
-                    if d < z.scenario.square_radius_of_interest:
-                        self.myFuture[c] = z.id
-                    if d > z.scenario.square_radius_of_replication:
-                        if c not in self.myFuture:
-                            self.myFuture[c] = -1 
+                        if d < z.scenario.radius_of_replication:
+                            self.myFuture[c] = z.id
+                        if d < z.scenario.radius_of_interest:
+                            self.myFuture[c] = z.id
+                        if d > z.scenario.radius_of_replication:
+                            if c not in self.myFuture:
+                                self.myFuture[c] = -1 
+
             else:
                 if c == 0:
                     # print(self.id,self.scenario.tracesDic[self.id].keys()[0])
@@ -305,11 +325,15 @@ class User:
                 # check if user is neighbour
                 if pos_user < self.scenario.square_radius_of_tx:
                     self.contacts_per_slot[c].append(user.id)
+                    self.contacts_list[user.id] = (self.contacts_list[user.id]+1)/(c+1)
                     if user.id not in self.dicc_peers.keys():
                         self.dicc_peers[user.id]= []
                         self.dicc_peers[user.id].append(c)
                     else:
                         self.dicc_peers[user.id].append(c)
+
+                if pos_user > self.scenario.square_radius_of_tx:
+                    self.contacts_list[user.id] = (self.contacts_list[user.id]+0)/(c+1)
 
                 # count contact length when the contact is over with that user
                 if user.id in self.dicc_peers and c != 0:
@@ -340,12 +364,13 @@ class User:
                     if c == self.scenario.num_slots-1 and c == self.dicc_peers[user.id][-1]:
                         ind = -1
                         coun = 0
-                        while self.dicc_peers[user.id][ind] == self.dicc_peers[user.id][ind-1]+1:
-                            ind = ind - 1 
-                            coun = coun + 1
-                            if -ind == len(self.dicc_peers[user.id]):
+                        if len(self.dicc_peers[user.id])>1:
+                            while self.dicc_peers[user.id][ind] == self.dicc_peers[user.id][ind-1]+1:
+                                ind = ind - 1 
                                 coun = coun + 1
-                                break
+                                if -ind == len(self.dicc_peers[user.id]):
+                                    coun = coun + 1
+                                    break
 
                         if self.myFuture[c] in self.prev_contact_len_mean:
                             self.prev_contact_len_mean[self.myFuture[c]] = ((self.contacts_count[self.myFuture[c]]*self.prev_contact_len_mean[self.myFuture[c]]) + coun)/(self.contacts_count[self.myFuture[c]]+1)
@@ -370,7 +395,7 @@ class User:
                 self.prev_contact_mean[self.myFuture[c]] = len(self.contacts_per_slot[c])
             else:
                 indexes = [i for i, n in enumerate(self.rz_visits_info) if n == self.myFuture[c]]
-                index = indexes.index(c)
+                index = indexes.index(len(self.rz_visits_info)-1)
                 self.prev_contact_mean[self.myFuture[c]] = ((index*self.prev_contact_mean[self.myFuture[c]])+len(self.contacts_per_slot[c]))/(index+1)
                     
 
@@ -400,7 +425,14 @@ class User:
                 # Find neighbours in this user's tx range
                 for user in self.scenario.usr_list:
                     if user.id != self.id:
-                        pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
+                        # pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
+                        if self.scenario.city =="Paderborn" or self.scenario.city =="Luxembourg":
+                            pos_user = np.power(user.x_list[-1]-self.x_list[-1],2) + np.power(user.y_list[-1]-self.y_list[-1],2)
+                        if self.scenario.city != "Paderborn" and self.scenario.city !="Luxembourg":
+                            coords_1 = (user.x_list[-1], user.y_list[-1])
+                            coords_2 = (self.x_list[-1], self.y_list[-1])
+                            pos_user = geopy.distance.distance(coords_1, coords_2).m
+                        
                         if pos_user < self.scenario.square_radius_of_tx:
                             # Check if the neighbour is going to the areas where data exchange is required
                             # if crossing attribute is True means that he is going to that other area and keeping the content in its DB
@@ -569,11 +601,16 @@ class User:
                 # check if user is neighbour
                 if pos_user < self.scenario.square_radius_of_tx:
                     self.contacts_per_slot[c].append(user.id)
+                    self.contacts_list[user.id] = (self.contacts_list[user.id]+1)/(c+1)
+
                     if user.id not in self.dicc_peers.keys():
                         self.dicc_peers[user.id]= []
                         self.dicc_peers[user.id].append(c)
                     else:
                         self.dicc_peers[user.id].append(c)
+
+                if pos_user > self.scenario.square_radius_of_tx:
+                    self.contacts_list[user.id] = (self.contacts_list[user.id]+0)/(c+1)
 
                 # count contact length when the contact is over with that user
                 if user.id in self.dicc_peers and c != 0:
@@ -813,7 +850,45 @@ class User:
 
                         self.exchangeData(neighbour,c)
                             
-                    
+
+
+
+    # def PIS(self,c):
+
+    def physicalProximityUpdating(self,c,node):
+        for contact in node.contacts_per_slot[c]:
+            self.ego[node.id][contact] = node.contacts_list[contact]
+            self.ego[contact][node.id] = node.contacts_list[contact]
+
+    def interestUpdating(self,c,node):
+        for interest in node.self_interests:
+            self.contacts_interests[interest] +=1
+
+    def socialRelationshipUpdating(self,c,node):
+        for relation in node.self_relations:
+            self.contacts_relations[relation] +=1
+
+    def proximitySimilarityCalculation(self,c,node,destination):
+        suma = 0
+        simpro = 0
+        for cSelf in self.contacts_per_slot[c]:
+            if cSelf in node.contacts_per_slot[c]:
+                suma += self.ego[cSelf][destination.id]
+
+        simpro = suma * self.scenario.beta
+        self.scenario.beta = self.scenario.beta * self.scenario.beta
+        return simpro
+
+            
+
+
+    # def interestSimilarityCalculation(self,c):
+    
+    # def socialSimilarityCalculation(self,c):
+
+    
+
+         
     # Method to check which DB is smaller and start exchanging it. 
     # At this point We have the messages to be exchange (exchange_list) and the total list of sizes (exchange_size).
 
