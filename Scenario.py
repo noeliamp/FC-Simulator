@@ -11,21 +11,13 @@ import json
 class Scenario:
     'Common base class for all scenarios'
 
-    def __init__(self, radius_of_interest, radius_of_replication, max_area, speed_distribution,pause_distribution,min_pause,max_pause,min_speed,max_speed,delta,
-    radius_of_tx,channel_rate,num_users,min_flight_length, max_flight_length,flight_length_distribution, hand_shake,num_zois,traces_folder,num_slots, algorithm,max_memory,max_time_elpased):
+    def __init__(self, radius_of_replication, max_area,delta,radius_of_tx,channel_rate,num_users,num_zois,
+                    traces_folder,num_slots, algorithm,max_memory,max_time_elpased):
         # print ("Creating new scenario...")
         self.num_slots = num_slots
-        self.square_radius_of_interest = radius_of_interest*radius_of_interest
         self.square_radius_of_replication = radius_of_replication*radius_of_replication
-        self.radius_of_interest = radius_of_interest
         self.radius_of_replication = radius_of_replication
         self.max_area = max_area
-        self.speed_distribution = speed_distribution
-        self.pause_distribution = pause_distribution
-        self.min_speed = min_speed
-        self.max_speed = max_speed
-        self.min_pause = min_pause
-        self.max_pause = max_pause
         self.delta = delta         # slot time
         self.radius_of_tx = radius_of_tx
         self.square_radius_of_tx = radius_of_tx*radius_of_tx
@@ -34,18 +26,10 @@ class Scenario:
         self.mbs = self.delta*self.channel_rate
         self.used_mbs = 0
         self.num_users= num_users
-        self.min_flight_length= min_flight_length
-        self.max_flight_length = max_flight_length
-        self.flight_length_distribution = flight_length_distribution
-        self.hand_shake = hand_shake
-        self.used_mbs_per_slot = []
         self.zois_list = []
         self.num_zois = num_zois
         self.tracesDic = OrderedDict()
         self.attempts = 0
-        self.count_0_exchange_conn = 0
-        self.count_non_useful = 0
-        self.count_useful = 0
         self.connection_duration_list = OrderedDict()
         self.connection_location_list = OrderedDict()
         self.list_of_tuples_pos = []
@@ -56,10 +40,13 @@ class Scenario:
         self.inside_anchorzone = []
         self.beta = 0.8
         self.alpha = 0.5
-        self.gamma = 0.8
-        self.rho = 1/3
-        self.sigma = 1/3
-        self.tau = 1/3
+        self.gamma = 0.1
+        self.rho = 0.333
+        self.sigma = 0.333
+        self.tau = 0.333
+        self.long_tracesDic = OrderedDict()
+        self.used_mbs_per_slot = []
+
 
 
         # If we only define 1 zoi we assume it is going to be located in the center of the scenario
@@ -211,16 +198,32 @@ class Scenario:
 
         nodes_counter=0
         for key,value in replacementDicc.items():
-            self.tracesDic[nodes_counter] = OrderedDict()
-            self.tracesDic[nodes_counter] = value
+            self.long_tracesDic[nodes_counter] = OrderedDict()
+            self.long_tracesDic[nodes_counter] = value
             nodes_counter +=1 
 
         print("Cuantos nodos hay---> ", nodes_counter)
+
         self.num_users = nodes_counter
+
+
+
+    def cutTracesDict(self, ini, end):
+        self.tracesDic = OrderedDict()
+        print("CUTTING")
+        self.tracesDic = OrderedDict()
+        for key,value in self.long_tracesDic.items():
+            self.tracesDic[key] = OrderedDict()
+            for k,v in value.items():
+                if k>=ini and k<end:
+                    self.tracesDic[key][k] = v
+
 
     def parseSanFranciscoTraces(self, folder):
         counter_users = 0
         replacementDicc= OrderedDict()
+        replacementDicc2= OrderedDict()
+
         folder = 'traces/' + folder
         for filename in os.listdir(folder):
             f=open(folder + '/'+ filename,"r")
@@ -239,7 +242,7 @@ class Scenario:
                 fix_starting_date = datetime.strptime(fix_starting_date_format, '%d-%m-%Y %H:%M:%S')
 
                 time = given_date-fix_starting_date
-                time = time.total_seconds()
+                time = int(time.total_seconds())
 
                  # We add the line info to each node dictionary
                     
@@ -247,89 +250,32 @@ class Scenario:
                     if node not in replacementDicc:
                         replacementDicc[node] = OrderedDict()
                         self.tracesDic[node] = OrderedDict()
-
                     replacementDicc[node][time] = [x,y]
-                    print(time)
 
             if node in replacementDicc.keys():
                 for k,v in reversed(replacementDicc[node].items()):
                     self.tracesDic[node][k] = v
 
                 counter_users += 1
-            # if counter_users == self.num_users:
-            #     break
+
         self.num_users = counter_users
-        print("Cuantos nodos hay---> ", self.num_users )
-
-
-
-
-    # def parseLuxembourgTraces(self, folder,file):
-    #     replacementDicc= OrderedDict()
-    #     f=open('traces/' + folder + '/'+ file +'_Luxembourg.txt',"r")
-    #     lines=f.readlines()
-    #     for line in lines:
-    #         lp = line.split(' ')
-    #         node= int(lp[0])
-    #         time = float(lp[2])
-    #         time = int(time)
-    #         x = float(lp[4])
-    #         y=float(lp[5])
-
-    #         if node not in replacementDicc:
-    #             replacementDicc[node] = OrderedDict()
-    #         replacementDicc[node][time] = [x,y]
-
-    #     nodes_counter=0
-    #     for key,value in replacementDicc.items():
-    #         self.tracesDic[nodes_counter] = OrderedDict()
-    #         self.tracesDic[nodes_counter] = value
-    #         nodes_counter +=1 
-        
-    #     print("Cuantos nodos hay---> ", nodes_counter)
-    #     self.num_users = nodes_counter
-
-
-    def parseLuxembourgTraces(self, folder,file):
-        with open('traces/' + folder + '/tracesLux-'+file+'.json', 'r') as fp:
-                data = json.load(fp, object_pairs_hook=OrderedDict)
-            
-
-        for k,v in data.items():
-            self.tracesDic[int(k)] = OrderedDict()
-            for key,value in v.items():
-                self.tracesDic[int(k)][int(key)]=[]
-                for coord in value:
-                    self.tracesDic[int(k)][int(key)].append(float(coord))
-       
-        print("Cuantos nodos hay---> ", len(self.tracesDic))
-        self.num_users = len(self.tracesDic)
-
-
-        for k,v in self.tracesDic.items():
-            self.inside_anchorzone.append(len(self.tracesDic[k].keys()))
-            print("Ha estado dentro:", k, len(self.tracesDic[k].keys()))
-
-        print("average--->",np.average(self.inside_anchorzone))
-        
-
-        # print(self.tracesDic)
+        print("Cuantos nodos hay---> ", self.num_users)
 
     def addRemoveNodes(self,c):
-        for k,v in self.tracesDic.items():
-            if self.tracesDic[k].keys()[0] == c:
+        for k in self.tracesDic.keys():
+            if len(self.tracesDic[k].keys())>0 and self.tracesDic[k].keys()[0] == c:
                 x = self.tracesDic[k].items()[0][1][0]
                 y = self.tracesDic[k].items()[0][1][1] 
-                print("El nodo", k, " entra en", c)
+                # print("El nodo", k, " entra en", c)
                 user = User(k,x,y, self,self.max_memory,self.max_time_elapsed)
                 self.usr_list.append(user)
                 user.predict(self.num_slots)
-                print(c, len(user.myFuture),user.myFuture[c],user.rz_visits_info)
+                # print(c, len(user.myFuture),user.myFuture[c],user.rz_visits_info)
                 user.rz_visits_info.append(user.myFuture[c])
 
 
-            if self.tracesDic[k].keys()[-1] == c:
-                print("El nodo", k, " sale en", c)
+            if len(self.tracesDic[k].keys())>0 and self.tracesDic[k].keys()[-1] == c:
+                # print("El nodo", k, " sale en", c)
                 for u in self.usr_list:
                     if k == u.id:
                         self.usr_list.remove(u)            

@@ -20,15 +20,12 @@ class Dump:
         l = []
         ids = []
         zois = []
-        print(len(self.scenario.usr_list))
         for i in self.scenario.usr_list:
-            x.append(i.x_list[-1])
-            y.append(i.y_list[-1])
+            x.append(i.x_pos)
+            y.append(i.y_pos)
             z.append(len(i.messages_list))
-            print(i.myFuture)
             l.append(i.myFuture[len(i.myFuture)-1])
 
-            # print("User id: ", self.scenario.usr_list[i].id, "position x: ", self.scenario.usr_list[i].x_list[-1] , "position y: ", self.scenario.usr_list[i].y_list[-1], "zones: ",self.scenario.usr_list[i].zones.values())
 
         # print(x)
         # print(y)
@@ -46,7 +43,7 @@ class Dump:
             file.write(json.dumps("&"))
             file.write(json.dumps(h.y))
             file.write(json.dumps("&"))
-            file.write(json.dumps(self.scenario.radius_of_interest))
+            file.write(json.dumps("u"))
             file.write(json.dumps("&"))
             file.write(json.dumps(self.scenario.radius_of_replication))
             file.write(json.dumps("&"))
@@ -63,12 +60,6 @@ class Dump:
         file.write(json.dumps("&"))
         file.write(json.dumps(zois))
         file.close()
-
-    ####### Lists for statistics 
-
-    def statisticsList(self,slots, zoi_users, zoi, rep_users, rep, per_users, per,attempts):
-         np.savetxt('results/'+str(self.uid)+'/dump.txt', np.column_stack((slots, zoi_users, zoi, rep_users, rep, per_users, per,attempts)),
-         fmt="%i %i %i %i %i %i %i %i")
 
     ####### Connection duration list
 
@@ -97,12 +88,6 @@ class Dump:
         with open('results/'+str(self.uid)+'/a-per-content-only-value.json', 'w') as fp7:
             json.dump(a_per_content_only_value, fp7)
 
-    ####### Availability per zoi per slot
-
-    def availabilityPerZoi(self,availability_per_zoi):
-        f = open('results/'+str(self.uid)+'/availability-per-zoi.txt',"w")
-        f.write(str(availability_per_zoi))
-        f.close()
 
      ####### Availability per content per slot
 
@@ -116,32 +101,6 @@ class Dump:
         with open('results/'+str(self.uid)+'/replicas-per-content.json', 'w') as fp:
             json.dump(replicas, fp)
 
-
-    ####### Availability final point per simulation
-
-    def availabilityPerSimulation(self,printa):
-        f = open('results/'+str(self.uid)+'/availability_points.txt',"w")
-        f.write(str(printa))
-        f.close()
-
-    ####### list of availabilities per slot per simulation
-
-    def listOfAveragesPerSlot(self,availabilities_list_per_slot):
-        outfile = open('results/'+str(self.uid)+'/availability_per_slot_per_sim.txt', 'w')
-        for result in availabilities_list_per_slot:
-            outfile.writelines(str(result))
-            outfile.write('\n')
-        outfile.close()
-
-    ########### number of connections that started but didn't finish. With the same number of slots as hand shake + 1 slot to check 
-    # that they don't have anything to exchange
-    def con0exchange(self):
-        f = open('results/'+str(self.uid)+'/counters.txt',"w")
-        f.write(str(self.scenario.count_0_exchange_conn)+"\n")
-        f.write(str(self.scenario.count_non_useful)+"\n")
-        f.write(str(self.scenario.count_useful)+"\n")
-        f.close()
-        
 
     ####### Number of users in the ZOI per slot
 
