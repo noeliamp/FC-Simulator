@@ -131,6 +131,3 @@ class Dump:
         for n in self.scenario.usr_list:
             outfile.writelines(str(n.myFuture.values()) + "\n")
         outfile.close()
-
-
-        

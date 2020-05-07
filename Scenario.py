@@ -278,4 +278,4 @@ class Scenario:
                 # print("El nodo", k, " sale en", c)
                 for u in self.usr_list:
                     if k == u.id:
-                        self.usr_list.remove(u)            
+                        self.usr_list.remove(u)    

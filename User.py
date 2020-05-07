@@ -53,6 +53,7 @@ class User:
         self.ego = np.zeros((self.scenario.num_users, self.scenario.num_users))
         self.ego_dict = OrderedDict()
         self.final_stat = 1
+        self.current_zoi = 99
         # self.displayUser()
 
     def displayUser(self):
@@ -215,13 +216,14 @@ class User:
                                     coun = coun + 1
                                     break
 
-                        if self.myFuture[c-1] in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[self.myFuture[c-1]] = ((self.contacts_count[self.myFuture[c-1]]*self.prev_contact_len_mean[self.myFuture[c-1]]) + coun)/(self.contacts_count[self.myFuture[c-1]]+1)
-                            self.contacts_count[self.myFuture[c-1]] = self.contacts_count[self.myFuture[c-1]] + 1
+                        previous_zoi = self.myFuture[c-1]
+                        if previous_zoi in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[previous_zoi] = ((self.contacts_count[previous_zoi]*self.prev_contact_len_mean[previous_zoi]) + coun)/(self.contacts_count[previous_zoi]+1)
+                            self.contacts_count[previous_zoi] = self.contacts_count[previous_zoi] + 1
 
-                        if self.myFuture[c-1] not in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[self.myFuture[c-1]] = coun
-                            self.contacts_count[self.myFuture[c-1]] = 1
+                        if previous_zoi not in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[previous_zoi] = coun
+                            self.contacts_count[previous_zoi] = 1
 
                     if c == self.scenario.num_slots-1 and c == self.dicc_peers[user.id][-1]:
                         ind = -1
@@ -233,46 +235,47 @@ class User:
                                 if -ind == len(self.dicc_peers[user.id]):
                                     coun = coun + 1
                                     break
-
-                        if self.myFuture[c] in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[self.myFuture[c]] = ((self.contacts_count[self.myFuture[c]]*self.prev_contact_len_mean[self.myFuture[c]]) + coun)/(self.contacts_count[self.myFuture[c]]+1)
-                            self.contacts_count[self.myFuture[c]] = self.contacts_count[self.myFuture[c]] + 1
+                        
+                        if self.current_zoi in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.current_zoi] = ((self.contacts_count[self.current_zoi]*self.prev_contact_len_mean[self.current_zoi]) + coun)/(self.contacts_count[self.current_zoi]+1)
+                            self.contacts_count[self.current_zoi] = self.contacts_count[self.current_zoi] + 1
                           
 
-                        if self.myFuture[c] not in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[self.myFuture[c]] = coun
-                            self.contacts_count[self.myFuture[c]] = 1
+                        if self.current_zoi not in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.current_zoi] = coun
+                            self.contacts_count[self.current_zoi] = 1
                        
     def computeStatistics(self,c):                         
         # statistics for decision making
         # computing the mean number of contacts
+
         if c == 0:
-            self.prev_contact_mean[self.myFuture[c]] = len(self.contacts_per_slot[c])
-            self.prev_contact_len_mean[self.myFuture[c]] = 0
-            self.contacts_count[self.myFuture[c]] = 0
+            self.prev_contact_mean[self.current_zoi] = len(self.contacts_per_slot[c])
+            self.prev_contact_len_mean[self.current_zoi] = 0
+            self.contacts_count[self.current_zoi] = 0
         else:
-            if self.myFuture[c] not in self.prev_contact_mean:
-                self.prev_contact_mean[self.myFuture[c]] = len(self.contacts_per_slot[c])
+            if self.current_zoi not in self.prev_contact_mean:
+                self.prev_contact_mean[self.current_zoi] = len(self.contacts_per_slot[c])
             else:
-                indexes = [i for i, n in enumerate(self.rz_visits_info) if n == self.myFuture[c]]
+                indexes = [i for i, n in enumerate(self.rz_visits_info) if n == self.current_zoi]
                 index = indexes.index(len(self.rz_visits_info)-1)
-                self.prev_contact_mean[self.myFuture[c]] = ((index*self.prev_contact_mean[self.myFuture[c]])+len(self.contacts_per_slot[c]))/(index+1)
+                self.prev_contact_mean[self.current_zoi] = ((index*self.prev_contact_mean[self.current_zoi])+len(self.contacts_per_slot[c]))/(index+1)
                     
 
         # computing the minimum from mean
-        if self.prev_contact_mean[self.myFuture[c]] == 0:
+        if self.prev_contact_mean[self.current_zoi] == 0:
             min_stats_mean = 1
         else:
-            min_stats_mean = min(1,1/self.prev_contact_mean[self.myFuture[c]])
+            min_stats_mean = min(1,1/self.prev_contact_mean[self.current_zoi])
 
         # computing the minimum from len_mean
-        if self.myFuture[c] not in self.prev_contact_len_mean:
+        if self.current_zoi not in self.prev_contact_len_mean:
             min_stats_len_mean = 1
         else:
-            if self.prev_contact_len_mean[self.myFuture[c]] == 0:
+            if self.prev_contact_len_mean[self.current_zoi] == 0:
                 min_stats_len_mean = 1
             else:
-                min_stats_len_mean = min(1,1/self.prev_contact_len_mean[self.myFuture[c]])
+                min_stats_len_mean = min(1,1/self.prev_contact_len_mean[self.current_zoi])
 
 
         ### final mean
@@ -303,10 +306,10 @@ class User:
                         self.scenario.connection_duration_list[self.connection_duration] +=1
 
                     # Add the location of the connection
-                    if self.myFuture[c] not in self.scenario.connection_location_list:
-                        self.scenario.connection_location_list[self.myFuture[c]] = 1
+                    if self.current_zoi not in self.scenario.connection_location_list:
+                        self.scenario.connection_location_list[self.current_zoi] = 1
                     else:
-                        self.scenario.connection_location_list[self.myFuture[c]] +=1
+                        self.scenario.connection_location_list[self.current_zoi] +=1
 
 
                     self.connection_duration = 0
@@ -431,10 +434,10 @@ class User:
                         self.scenario.connection_duration_list[self.connection_duration] +=1
 
                     # Add the location of the connection
-                    if  self.myFuture[c] not in self.scenario.connection_location_list:
-                        self.scenario.connection_location_list[self.myFuture[c]] = 1
+                    if self.current_zoi not in self.scenario.connection_location_list:
+                        self.scenario.connection_location_list[self.current_zoi] = 1
                     else:
-                        self.scenario.connection_location_list[self.myFuture[c]] +=1
+                        self.scenario.connection_location_list[self.current_zoi] +=1
 
                     # print("CONNEC DURATION FAR PEER--> ", self.connection_duration)
                     self.connection_duration = 0
@@ -794,10 +797,10 @@ class User:
                 self.scenario.connection_duration_list[self.connection_duration] +=1
             # print("CONNEC DURATION normal--> ", self.connection_duration)
             # Add the location of the connection
-            if self.myFuture[c] not in self.scenario.connection_location_list:
-                self.scenario.connection_location_list[self.myFuture[c]] = 1
+            if self.current_zoi not in self.scenario.connection_location_list:
+                self.scenario.connection_location_list[self.current_zoi] = 1
             else:
-                self.scenario.connection_location_list[self.myFuture[c]] +=1
+                self.scenario.connection_location_list[self.current_zoi] +=1
 
 
             self.connection_duration = 0
@@ -821,4 +824,3 @@ class User:
             if neighbour.exchange_size == 0 and self.exchange_size == 0:
                 self.busy = False
                 neighbour.busy = False
-

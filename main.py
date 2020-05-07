@@ -190,7 +190,7 @@ while c < num_slots:
             userCounter=0
             np.random.shuffle(scenario.usr_list)
             for u in scenario.usr_list:
-                if u.myFuture[c] != -1:
+                if u.current_zoi != -1:
                     # print("User id ", u.id)
                     msg = Message(uuid.uuid4(),content_size,scenario,c)
                     # print("Creating contents at slot: ", c)
@@ -199,9 +199,8 @@ while c < num_slots:
                     u.used_memory += msg.size  
                     # print("User msg list ", len(u.messages_list))
                     userCounter+=1
-                    # for o in scenario.zois_list:
-                    #     if o.id == u.myFuture[c]:
-                    scenario.zois_list[u.myFuture[c]].content_list.append(msg)
+                 
+                    scenario.zois_list[u.current_zoi].content_list.append(msg)
                     if userCounter == content_generation_users:
                         break
 
@@ -212,6 +211,7 @@ while c < num_slots:
     for j in scenario.usr_list:
         j.busy = False
         j.readTraces(c)
+        j.current_zoi = j.myFuture[c]
         if j.myFuture[c] == -1:
             for z in scenario.zois_list:
                 j.checkDB(z,c)
@@ -239,15 +239,14 @@ while c < num_slots:
             k.userContactOutIn(c)
 
         # After moving the nodes and exchanging content, check to which zone they belong to increase the right counter
-        if k.myFuture[c] != -1:
-            if c % store == 0:
-                nodes_in_zoi[k.myFuture[c]][c] += 1
+        if k.current_zoi != -1:
+            nodes_in_zoi[k.current_zoi][c] += 1
             # Increment the content counter after moving and exchanging
             for m in k.messages_list:
-                m.counter[k.myFuture[c]] += 1
+                m.counter[k.current_zoi] += 1
 
         # only to count if there are messages out of the zois  
-        if k.myFuture[c] == -1:
+        if k.current_zoi == -1:
             # Increment the content counter after moving and exchanging
             for m in k.messages_list:
                 m.counter[2] += 1
@@ -255,63 +254,57 @@ while c < num_slots:
     scenario.addRemoveNodes(c)
     ################################## Availability ############################################
     # we add the current slot availability to the list
-    if c % store == 0:
-        for z in scenario.zois_list:
-            for m in z.content_list:
+    
+    for z in scenario.zois_list:
+        for m in z.content_list:
+            if str(m.id) not in a_per_content:
+                if c % 20 == 0:
+                    a_per_content[str(m.id)] = OrderedDict()
+                    a_per_content[str(m.id)][0] = [0] * int(c/20)
+                    a_per_content[str(m.id)][1] = [0] * int(c/20)
                 if c == 0:
                     a_per_content[str(m.id)] = OrderedDict()
                     a_per_content[str(m.id)][0]= []
                     a_per_content[str(m.id)][1] = []
-                if str(m.id) not in a_per_content:
-                    a_per_content[str(m.id)] = OrderedDict()
-                    a_per_content[str(m.id)][0] = [0] * int(c/store)
-                    a_per_content[str(m.id)][1] = [0] * int(c/store)
-            
                 a_per_content_only_value[str(m.id)] = OrderedDict()
                 a_per_content_only_value[str(m.id)][0] = 0
                 a_per_content_only_value[str(m.id)][1] = 0
-
             # first add availability for ZOI 0
-            if nodes_in_zoi[0][c] != 0:
-                a_per_content[str(m.id)][0].append(m.counter[0]/nodes_in_zoi[0][c])
-            else:
-                if m.counter[2] > 0 or m.counter[1]>0:
-                    a_per_content[str(m.id)][0].append(0.000000000001)
+            if c % 20 == 0:
+                if nodes_in_zoi[0][c] != 0:
+                    a_per_content[str(m.id)][0].append(m.counter[0]/nodes_in_zoi[0][c])
                 else:
-                    a_per_content[str(m.id)][0].append(0)
-
+                    if m.counter[2] > 0 or m.counter[1]>0:
+                        a_per_content[str(m.id)][0].append(0.000000000001)
+                    else:
+                        a_per_content[str(m.id)][0].append(0)
             if a_per_content_only_value[str(m.id)][0] != 0:
                 if nodes_in_zoi[0][c] != 0:
                     a_per_content_only_value[str(m.id)][0] = ((m.availability_counter_0*a_per_content_only_value[str(m.id)][0])+(m.counter[0]/nodes_in_zoi[0][c]))/(m.availability_counter_0+1)
                 else:
                     a_per_content_only_value[str(m.id)][0] = ((m.availability_counter_0*a_per_content_only_value[str(m.id)][0])+(0))/(m.availability_counter_0+1)
                 m.availability_counter_0 = m.availability_counter_0 + 1
-
-
             if a_per_content_only_value[str(m.id)][0] == 0:
                 if nodes_in_zoi[0][c] != 0:
                     a_per_content_only_value[str(m.id)][0] = m.counter[0]/nodes_in_zoi[0][c]
                 else:
                     a_per_content_only_value[str(m.id)][0] = 0
                 m.availability_counter_0 = m.availability_counter_0 + 1
-
             # Second add availability for ZOI 1
-            if nodes_in_zoi[1][c] !=0:
-                a_per_content[str(m.id)][1].append(m.counter[1]/nodes_in_zoi[1][c])
-            else:
-                if m.counter[2] > 0 or m.counter[0]>0:
-                    a_per_content[str(m.id)][1].append(0.000000000001)
+            if c % 20 == 0:
+                if nodes_in_zoi[1][c] !=0:
+                    a_per_content[str(m.id)][1].append(m.counter[1]/nodes_in_zoi[1][c])
                 else:
-                    a_per_content[str(m.id)][1].append(0)
-
+                    if m.counter[2] > 0 or m.counter[0]>0:
+                        a_per_content[str(m.id)][1].append(0.000000000001)
+                    else:
+                        a_per_content[str(m.id)][1].append(0)
             if a_per_content_only_value[str(m.id)][1] != 0:
                 if nodes_in_zoi[1][c] !=0:
                     a_per_content_only_value[str(m.id)][1] = ((m.availability_counter_1*a_per_content_only_value[str(m.id)][1])+(m.counter[1]/nodes_in_zoi[1][c]))/(m.availability_counter_1+1)
                 else:
                     a_per_content_only_value[str(m.id)][1] = ((m.availability_counter_1*a_per_content_only_value[str(m.id)][1])+(0))/(m.availability_counter_1+1)
                 m.availability_counter_1 = m.availability_counter_1 + 1
-
-
             if a_per_content_only_value[str(m.id)][1] == 0:
                 if nodes_in_zoi[1][c] != 0:
                     a_per_content_only_value[str(m.id)][1] = m.counter[1]/nodes_in_zoi[1][c]
@@ -319,25 +312,23 @@ while c < num_slots:
                     a_per_content_only_value[str(m.id)][1] = 0
                 m.availability_counter_1 = m.availability_counter_1 + 1
         
-
             ### replicas
             if str(m.id) not in replicas:
+                if c % 20 == 0 and c!= 0:
+                    replicas[str(m.id)] = OrderedDict()
+                    replicas[str(m.id)][0] = [0] * int((c/20))
+                    replicas[str(m.id)][1] = [0] * int((c/20))
                 if c == 0:
                     replicas[str(m.id)] = OrderedDict()
                     replicas[str(m.id)][0]= []
                     replicas[str(m.id)][1] = []
-                if c!= 0:
-                    replicas[str(m.id)] = OrderedDict()
-                    replicas[str(m.id)][0] = [0] * int((c/store))
-                    replicas[str(m.id)][1] = [0] * int((c/store))
-
-
-           
-            replicas[str(m.id)][0].append(m.counter[0])
-            replicas[str(m.id)][1].append(m.counter[1])
+            if c % 20 == 0:
+                replicas[str(m.id)][0].append(m.counter[0])
+                replicas[str(m.id)][1].append(m.counter[1])
         
         # print("availability: ", m.counter[z.id],nodes_in_zoi[z.id][c], a_per_content[str(m.id)][z.id],m.counter[z.id])
     
+    if c % 20 == 0:
         for u in scenario.usr_list:
             if u.id not in contents_per_slot_per_user:
                 contents_per_slot_per_user[u.id]= []
@@ -363,10 +354,11 @@ for k in scenario.usr_list:
         # print("CONNEC DURATION out--> ", k.connection_duration)
 
          # Add the location of the connection
-        if k.myFuture[num_slots-1] not in k.scenario.connection_location_list.keys():
-            k.scenario.connection_location_list[k.myFuture[num_slots-1]] = 1
+        previous_zoi = k.myFuture[num_slots-1]
+        if previous_zoi not in k.scenario.connection_location_list.keys():
+            k.scenario.connection_location_list[previous_zoi] = 1
         else:
-            k.scenario.connection_location_list[k.myFuture[num_slots-1]] +=1
+            k.scenario.connection_location_list[previous_zoi] +=1
 
 
 dumping()
