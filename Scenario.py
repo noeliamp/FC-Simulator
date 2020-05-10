@@ -262,10 +262,10 @@ class Scenario:
         print("Cuantos nodos hay---> ", self.num_users)
 
     def addRemoveNodes(self,c):
-        for k in self.tracesDic.keys():
-            if len(self.tracesDic[k].keys())>0 and self.tracesDic[k].keys()[0] == c:
-                x = self.tracesDic[k].items()[0][1][0]
-                y = self.tracesDic[k].items()[0][1][1] 
+        for k in self.long_tracesDic.keys():
+            if len(self.long_tracesDic[k].keys())>0 and self.long_tracesDic[k].keys()[0] == c:
+                x = self.long_tracesDic[k].items()[0][1][0]
+                y = self.long_tracesDic[k].items()[0][1][1] 
                 # print("El nodo", k, " entra en", c)
                 user = User(k,x,y, self,self.max_memory,self.max_time_elapsed)
                 self.usr_list.append(user)
@@ -274,8 +274,23 @@ class Scenario:
                 user.rz_visits_info.append(user.myFuture[c])
 
 
-            if len(self.tracesDic[k].keys())>0 and self.tracesDic[k].keys()[-1] == c:
+            if len(self.long_tracesDic[k].keys())>0 and self.long_tracesDic[k].keys()[-1] == c:
                 # print("El nodo", k, " sale en", c)
                 for u in self.usr_list:
                     if k == u.id:
                         self.usr_list.remove(u)    
+
+
+    def parseLuxembourgTraces(self, folder,file):
+        with open('traces/' + folder + '/tracesLux-'+file+'.json', 'r') as fp:
+                data = json.load(fp, object_pairs_hook=OrderedDict)
+            
+        for k,v in data.items():
+            self.long_tracesDic[int(k)] = OrderedDict()
+            for key,value in v.items():
+                self.long_tracesDic[int(k)][int(key)]=[]
+                for coord in value:
+                    self.long_tracesDic[int(k)][int(key)].append(float(coord))
+       
+        print("Cuantos nodos hay---> ", len(self.long_tracesDic))
+        self.num_users = len(self.long_tracesDic)

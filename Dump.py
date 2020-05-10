@@ -63,9 +63,9 @@ class Dump:
 
     ####### Connection duration list
 
-    def connectionDurationAndMore(self,contacts_per_slot_per_user,contents_per_slot_per_user,rzs_per_slot_per_user,contact_mean,contact_len_mean,a_per_content_only_value):
-        with open('results/'+str(self.uid)+'/contacts-per-slot-per-user.json', 'w') as fp:
-            json.dump(contacts_per_slot_per_user, fp)
+    def connectionDurationAndMore(self,contents_per_slot_per_user,rzs_per_slot_per_user,contact_mean,contact_len_mean,a_per_content_only_value):
+        # with open('results/'+str(self.uid)+'/contacts-per-slot-per-user.json', 'w') as fp:
+        #     json.dump(contacts_per_slot_per_user, fp)
 
         with open('results/'+str(self.uid)+'/rzs-per-slot-per-user.json', 'w') as fp:
             json.dump(rzs_per_slot_per_user, fp)
