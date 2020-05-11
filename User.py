@@ -40,9 +40,10 @@ class User:
         self.history = OrderedDict()
         self.rz_visits_info = []
         self.dicc_peers = OrderedDict()
-        self.prev_contact_mean = OrderedDict()
-        self.prev_contact_len_mean = OrderedDict()
-        self.contacts_count = OrderedDict()
+        # self.prev_contact_mean = OrderedDict()
+        # self.prev_contact_len_mean = OrderedDict()
+        # self.final_stat = 1
+        # self.contacts_count = OrderedDict()
         self.self_interests = [np.random.randint(0, 9) for p in range(0, np.random.randint(0, 9))]
         self.self_relations = [np.random.randint(0, self.scenario.num_users) for p in range(0, np.random.randint(0,self.scenario.num_users))]
         self.contacts_interests = [0]*10
@@ -53,7 +54,6 @@ class User:
         self.simPIS = 0
         self.ego = np.zeros((self.scenario.num_users, self.scenario.num_users))
         self.ego_dict = OrderedDict()
-        self.final_stat = 1
         self.current_zoi = 99
         # self.displayUser()
 
@@ -152,7 +152,7 @@ class User:
                 self.list_of_zois_future.append(v)     
 
         # print(self.list_of_zois_future)  
-
+        self.current_zoi = self.myFuture[c]
 
     # Method to read from the traces (stored in the scenario) each node's new position
     # This method will make a node move in every new slot to the next point in the list
@@ -165,8 +165,6 @@ class User:
             # print("Next point: ", x, y)   
             self.x_pos = x
             self.y_pos = y
-
-
 
 
     def getContacts(self,c):
@@ -218,13 +216,13 @@ class User:
                                     break
 
                         previous_zoi = self.myFuture[c-1]
-                        if previous_zoi in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[previous_zoi] = ((self.contacts_count[previous_zoi]*self.prev_contact_len_mean[previous_zoi]) + coun)/(self.contacts_count[previous_zoi]+1)
-                            self.contacts_count[previous_zoi] = self.contacts_count[previous_zoi] + 1
+                        if previous_zoi in self.scenario.prev_contact_len_mean:
+                            self.scenario.prev_contact_len_mean[previous_zoi] = ((self.scenario.contacts_count[previous_zoi]*self.scenario.prev_contact_len_mean[previous_zoi]) + coun)/(self.scenario.contacts_count[previous_zoi]+1)
+                            self.scenario.contacts_count[previous_zoi] = self.scenario.contacts_count[previous_zoi] + 1
 
-                        if previous_zoi not in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[previous_zoi] = coun
-                            self.contacts_count[previous_zoi] = 1
+                        if previous_zoi not in self.scenario.prev_contact_len_mean:
+                            self.scenario.prev_contact_len_mean[previous_zoi] = coun
+                            self.scenario.contacts_count[previous_zoi] = 1
 
                     if c == self.scenario.num_slots-1 and c == self.dicc_peers[user.id][-1]:
                         ind = -1
@@ -237,14 +235,14 @@ class User:
                                     coun = coun + 1
                                     break
                         
-                        if self.current_zoi in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[self.current_zoi] = ((self.contacts_count[self.current_zoi]*self.prev_contact_len_mean[self.current_zoi]) + coun)/(self.contacts_count[self.current_zoi]+1)
-                            self.contacts_count[self.current_zoi] = self.contacts_count[self.current_zoi] + 1
+                        if self.current_zoi in self.scenario.prev_contact_len_mean:
+                            self.scenario.prev_contact_len_mean[self.current_zoi] = ((self.scenario.contacts_count[self.current_zoi]*self.scenario.prev_contact_len_mean[self.current_zoi]) + coun)/(self.scenario.contacts_count[self.current_zoi]+1)
+                            self.scenario.contacts_count[self.current_zoi] = self.scenario.contacts_count[self.current_zoi] + 1
                           
 
-                        if self.current_zoi not in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[self.current_zoi] = coun
-                            self.contacts_count[self.current_zoi] = 1
+                        if self.current_zoi not in self.scenario.prev_contact_len_mean:
+                            self.scenario.prev_contact_len_mean[self.current_zoi] = coun
+                            self.scenario.contacts_count[self.current_zoi] = 1
                        
     def computeStatistics(self,c):                         
         # statistics for decision making
@@ -253,36 +251,36 @@ class User:
         num_contacts = len(self.current_contacts)
 
         if c == 0:
-            self.prev_contact_mean[self.current_zoi] = num_contacts
-            self.prev_contact_len_mean[self.current_zoi] = 0
-            self.contacts_count[self.current_zoi] = 0
+            self.scenario.prev_contact_mean[self.current_zoi] = num_contacts
+            self.scenario.prev_contact_len_mean[self.current_zoi] = 0
+            self.scenario.contacts_count[self.current_zoi] = 0
         else:
-            if self.current_zoi not in self.prev_contact_mean:
-                self.prev_contact_mean[self.current_zoi] = num_contacts
+            if self.current_zoi not in self.scenario.prev_contact_mean:
+                self.scenario.prev_contact_mean[self.current_zoi] = num_contacts
             else:
                 indexes = [i for i, n in enumerate(self.rz_visits_info) if n == self.current_zoi]
                 index = indexes.index(len(self.rz_visits_info)-1)
-                self.prev_contact_mean[self.current_zoi] = ((index*self.prev_contact_mean[self.current_zoi])+num_contacts)/(index+1)
+                self.scenario.prev_contact_mean[self.current_zoi] = ((index*self.scenario.prev_contact_mean[self.current_zoi])+num_contacts)/(index+1)
                     
 
         # computing the minimum from mean
-        if self.prev_contact_mean[self.current_zoi] == 0:
+        if self.scenario.prev_contact_mean[self.current_zoi] == 0:
             min_stats_mean = 1
         else:
-            min_stats_mean = min(1,1/self.prev_contact_mean[self.current_zoi])
+            min_stats_mean = min(1,1/self.scenario.prev_contact_mean[self.current_zoi])
 
         # computing the minimum from len_mean
-        if self.current_zoi not in self.prev_contact_len_mean:
+        if self.current_zoi not in self.scenario.prev_contact_len_mean:
             min_stats_len_mean = 1
         else:
-            if self.prev_contact_len_mean[self.current_zoi] == 0:
+            if self.scenario.prev_contact_len_mean[self.current_zoi] == 0:
                 min_stats_len_mean = 1
             else:
-                min_stats_len_mean = min(1,1/self.prev_contact_len_mean[self.current_zoi])
+                min_stats_len_mean = min(1,1/self.scenario.prev_contact_len_mean[self.current_zoi])
 
 
         ### final mean
-        self.final_stat = (min_stats_mean+min_stats_len_mean)/2
+        self.scenario.final_stat = (min_stats_mean+min_stats_len_mean)/2
         
     # method to allow nodes to exchange within a RZ and in the surroundings taking into account a maximum elapse time
     def userContactOutIn(self,c):
@@ -325,7 +323,7 @@ class User:
 
                 # Continue looking for neighbours   
                 # In case we want to connect with more than one neighbour we need to run a loop. Now we only select one neighbour from the list.
-                if self.final_stat > 0.2:
+                if self.scenario.final_stat > 0.2:
                     neighbour = None
                     # for neigid in self.contacts_per_slot[c]:
                     for neigid in self.current_contacts:
@@ -464,43 +462,44 @@ class User:
                     self.contacts_relations[rCont] = (self.contacts_relations[rCont] + 0)/(c+1)
 
     def similaritiesCalculation(self,c):
-        for destination in self.scenario.usr_list:
-            if destination != self:
-                sum_pro = 0
-                sum_int = 0
-                sum_soc = 0
-                simpro = 0
-                simint = 0
-                simsoc = 0
-                simPro = []
-                simInt = []
-                simSoc = []
-                # for cSelf in self.contacts_per_slot[c]:
-                for cSelf in self.current_contacts:
+        if len(self.scenario.usr_list)>1:
+            for destination in self.scenario.usr_list:
+                if destination != self:
+                    sum_pro = 0
+                    sum_int = 0
+                    sum_soc = 0
+                    simpro = 0
+                    simint = 0
+                    simsoc = 0
+                    simPro = []
+                    simInt = []
+                    simSoc = []
+                    # for cSelf in self.contacts_per_slot[c]:
+                    for cSelf in self.current_contacts:
 
-                    # if cSelf in destination.contacts_per_slot[c]:
-                    if cSelf in destination.current_contacts:
+                        # if cSelf in destination.contacts_per_slot[c]:
+                        if cSelf in destination.current_contacts:
 
-                        self.ego[cSelf][destination.id] 
-                            
-                for iDest in destination.self_interests:
-                    sum_int += self.contacts_interests[iDest]
-                
-                for rDest in destination.self_relations:
-                    sum_soc += self.contacts_relations[rDest]
+                            self.ego[cSelf][destination.id] 
+                                
+                    for iDest in destination.self_interests:
+                        sum_int += self.contacts_interests[iDest]
+                    
+                    for rDest in destination.self_relations:
+                        sum_soc += self.contacts_relations[rDest]
 
 
-                simpro = sum_pro * self.scenario.beta
-                simint = sum_int * self.scenario.beta
-                simsoc = sum_soc * self.scenario.beta
-                simPro.append(simpro)
-                simInt.append(simint)
-                simSoc.append(simsoc)
+                    simpro = sum_pro * self.scenario.beta
+                    simint = sum_int * self.scenario.beta
+                    simsoc = sum_soc * self.scenario.beta
+                    simPro.append(simpro)
+                    simInt.append(simint)
+                    simSoc.append(simsoc)
 
-     
-        self.simPro = np.average(simPro)
-        self.simInt = np.average(simInt)
-        self.simSoc = np.average(simSoc)        
+        
+            self.simPro = np.average(simPro)
+            self.simInt = np.average(simInt)
+            self.simSoc = np.average(simSoc)        
     
 
     def PIS(self,peer):

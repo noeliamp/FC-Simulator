@@ -74,8 +74,14 @@ def dumping():
     for u in scenario.usr_list:
         # contacts_per_slot_per_user[u.id] = u.contacts_per_slot
         rzs_per_slot_per_user[u.id] = u.rz_visits_info
-        contact_mean[u.id] = u.prev_contact_mean
-        contact_len_mean[u.id] = u.prev_contact_len_mean
+    
+    contact_mean[0] = scenario.prev_contact_mean[0]
+    contact_mean[1] = scenario.prev_contact_mean[1]
+    contact_mean[2] = scenario.prev_contact_mean[-1]
+
+    contact_len_mean[0] = scenario.prev_contact_len_mean[0]
+    contact_len_mean[1] = scenario.prev_contact_len_mean[1]
+    contact_len_mean[2] = scenario.prev_contact_len_mean[-1]
 
 
     ###################### Functions to dump data per simulation #########################
@@ -157,12 +163,12 @@ bar = progressbar.ProgressBar(maxval=num_slots, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 bar.start()
 ################## ################## Loop per slot into a simulation ################## ##################
-scenario.cutTracesDict(0,1030)
+scenario.cutTracesDict(0,20000)
 while c < num_slots:
     bar.update(c)
 
-    if c % 1000 == 0:
-        scenario.cutTracesDict(c,c+1030)
+    # if c % 1000 == 0:
+    #     scenario.cutTracesDict(c,c+1030)
 
     # shuffle users lists
     np.random.shuffle(scenario.usr_list)
@@ -345,7 +351,7 @@ while c < num_slots:
                 contents_per_slot_per_user[u.id]= []
             contents_per_slot_per_user[u.id].append(len(u.messages_list))
 
-    if c != 0 and c % 1000 == 0 or c == num_slots - 2:
+    if c != 0 and c % 10000 == 0 or c == num_slots - 2:
         dumping()
 
     # print("SLOT NUMBER: ", c)

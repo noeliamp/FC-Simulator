@@ -46,8 +46,19 @@ class Scenario:
         self.tau = 0.333
         self.long_tracesDic = OrderedDict()
         self.used_mbs_per_slot = []
-
-
+        self.final_stat = 1
+        self.prev_contact_mean = OrderedDict()
+        self.prev_contact_mean[0] = 0
+        self.prev_contact_mean[1] = 0
+        self.prev_contact_mean[-1] = 0
+        self.prev_contact_len_mean = OrderedDict()
+        self.prev_contact_len_mean[0] =0
+        self.prev_contact_len_mean[1] =0
+        self.prev_contact_len_mean[-1] =0
+        self.contacts_count = OrderedDict()
+        self.contacts_count[0] = 0
+        self.contacts_count[1] = 0
+        self.contacts_count[-1] = 0
 
         # If we only define 1 zoi we assume it is going to be located in the center of the scenario
         if self.num_zois == 1:
@@ -249,12 +260,12 @@ class Scenario:
                 if time < self.num_slots:
                     if node not in replacementDicc:
                         replacementDicc[node] = OrderedDict()
-                        self.tracesDic[node] = OrderedDict()
+                        self.long_tracesDic[node] = OrderedDict()
                     replacementDicc[node][time] = [x,y]
 
             if node in replacementDicc.keys():
                 for k,v in reversed(replacementDicc[node].items()):
-                    self.tracesDic[node][k] = v
+                    self.long_tracesDic[node][k] = v
 
                 counter_users += 1
 
@@ -263,22 +274,47 @@ class Scenario:
 
     def addRemoveNodes(self,c):
         for k in self.long_tracesDic.keys():
-            if len(self.long_tracesDic[k].keys())>0 and self.long_tracesDic[k].keys()[0] == c:
-                x = self.long_tracesDic[k].items()[0][1][0]
-                y = self.long_tracesDic[k].items()[0][1][1] 
-                # print("El nodo", k, " entra en", c)
-                user = User(k,x,y, self,self.max_memory,self.max_time_elapsed)
-                self.usr_list.append(user)
-                user.predict(self.num_slots)
-                # print(c, len(user.myFuture),user.myFuture[c],user.rz_visits_info)
-                user.rz_visits_info.append(user.myFuture[c])
+            if len(self.long_tracesDic[k].keys())>0 and c in self.long_tracesDic[k].keys():
+                if self.long_tracesDic[k].keys()[0] == c:
+                    x = self.long_tracesDic[k].items()[0][1][0]
+                    y = self.long_tracesDic[k].items()[0][1][1] 
+                    print("El nodo", k, " entra POR PRIMERA VEZ en", c)
+                    user = User(k,x,y, self,self.max_memory,self.max_time_elapsed)
+                    self.usr_list.append(user)
+                    user.predict(self.num_slots)
+                    # print(c, len(user.myFuture),user.myFuture[c],user.rz_visits_info)
+                    user.rz_visits_info.append(user.myFuture[c])
+
+                if self.long_tracesDic[k].keys()[-1] == c:
+                    print("El nodo", k, " sale AL FINAL DE TODO en", c)
+                    for u in self.usr_list:
+                        if k == u.id:
+                            self.usr_list.remove(u)  
+
+                if  self.long_tracesDic[k].keys()[0] != c and self.long_tracesDic[k].keys()[-1] != c:
+                    actual_index = self.long_tracesDic[k].keys().index(c)
+                    previous_key = list(self.long_tracesDic[k].keys())[actual_index-1]
+                    print("Estoy para entrar--->", c - previous_key)
+                    if (c - previous_key) > 300:
+                        x = self.long_tracesDic[k].items()[0][1][0]
+                        y = self.long_tracesDic[k].items()[0][1][1] 
+                        print(c - previous_key,"El nodo", k, " entra en", c)
+                        user = User(k,x,y, self,self.max_memory,self.max_time_elapsed)
+                        self.usr_list.append(user)
+                        user.predict(self.num_slots)
+                        # print(c, len(user.myFuture),user.myFuture[c],user.rz_visits_info)
+                        user.rz_visits_info.append(user.myFuture[c])
 
 
-            if len(self.long_tracesDic[k].keys())>0 and self.long_tracesDic[k].keys()[-1] == c:
-                # print("El nodo", k, " sale en", c)
-                for u in self.usr_list:
-                    if k == u.id:
-                        self.usr_list.remove(u)    
+                    
+                    actual_index = self.long_tracesDic[k].keys().index(c)
+                    next_key = list(self.long_tracesDic[k].keys())[actual_index+1]
+                    print("Estoy para salir---> ",next_key - c)
+                    if (next_key - c) > 300:
+                        print(c + next_key,"El nodo", k, " sale en", c)
+                        for u in self.usr_list:
+                            if k == u.id:
+                                self.usr_list.remove(u) 
 
 
     def parseLuxembourgTraces(self, folder,file):
