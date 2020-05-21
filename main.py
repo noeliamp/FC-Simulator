@@ -59,7 +59,12 @@ num_slots = data["num_slots"]                           # number of repetitions 
 max_time_elapsed = data["max_time_elapsed"]
 ttl = data["msg_ttl"]
 algorithm = data["algorithm"]
+if algorithm == "PIS":
+    gamma = data["gamma"]
+else:
+    gamma = -100000
 store = data["store"]
+days = str(int((num_slots/3600)/24))
 
 # Do we want to set a seed?
 seed_list = [15482669,15482681,15482683,15482711,15482729,15482941,15482947,15482977,15482993,15483023,15483029,15483067,15483077,15483079,15483089,15483101,15483103,15482743,15482771,15482773,15482783,15482807,15482809,15482827,15482851,15482861,15482893,15482911,15482917,15482923]
@@ -75,13 +80,14 @@ def dumping():
         # contacts_per_slot_per_user[u.id] = u.contacts_per_slot
         rzs_per_slot_per_user[u.id] = u.rz_visits_info
     
-    contact_mean[0] = scenario.prev_contact_mean[0]
-    contact_mean[1] = scenario.prev_contact_mean[1]
-    contact_mean[2] = scenario.prev_contact_mean[-1]
+        
+        contact_mean[0] = u.prev_contact_mean[0]
+        contact_mean[1] = u.prev_contact_mean[1]
+        contact_mean[2] = u.prev_contact_mean[-1]
 
-    contact_len_mean[0] = scenario.prev_contact_len_mean[0]
-    contact_len_mean[1] = scenario.prev_contact_len_mean[1]
-    contact_len_mean[2] = scenario.prev_contact_len_mean[-1]
+        contact_len_mean[0] = u.prev_contact_len_mean[0]
+        contact_len_mean[1] = u.prev_contact_len_mean[1]
+        contact_len_mean[2] = u.prev_contact_len_mean[-1]
 
 
     ###################### Functions to dump data per simulation #########################
@@ -111,9 +117,10 @@ num_zois=density_zois
 
 # CREATION OF SCENARIO With num_zois number of zois
 scenario = Scenario(radius_of_replication, max_area,delta,radius_of_tx,channel_rate,num_users,num_zois, traces_folder,
-num_slots,algorithm,max_memory,max_time_elapsed)
+num_slots,algorithm,max_memory,max_time_elapsed,gamma)
 
 ################## Parse traces in case we are using them
+traces_file = days
 if traces_folder == "none":
     scenario.parsePaderbornTraces(traces_folder,traces_file)
 
@@ -163,12 +170,13 @@ bar = progressbar.ProgressBar(maxval=num_slots, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 bar.start()
 ################## ################## Loop per slot into a simulation ################## ##################
-scenario.cutTracesDict(0,20000)
+scenario.cutTracesDict(0,1030)
 while c < num_slots:
+    print("SLOT--->", c)
     bar.update(c)
 
-    # if c % 1000 == 0:
-    #     scenario.cutTracesDict(c,c+1030)
+    if c % 1000 == 0:
+        scenario.cutTracesDict(c,c+1030)
 
     # shuffle users lists
     np.random.shuffle(scenario.usr_list)
@@ -202,11 +210,8 @@ while c < num_slots:
                     # print("Creating contents at slot: ", c)
                     # print("User msg list ", len(u.messages_list))
                     u.messages_list.append(msg)  
-                    u.used_memory += msg.size  
                     # print("User msg list ", len(u.messages_list))
                     userCounter+=1
-                 
-                    print(u.current_zoi, scenario.zois_list)
                     scenario.zois_list[u.current_zoi].content_list.append(msg)
                     if userCounter == content_generation_users:
                         break
@@ -219,41 +224,32 @@ while c < num_slots:
         j.busy = False
         j.readTraces(c)
         j.current_zoi = j.myFuture[c]
-        if j.current_zoi == -1:
+        if j.current_zoi == -1 and scenario.algorithm != 'PIS':
             for z in scenario.zois_list:
                 j.checkDB(z,c)
                 # j.checkHistory(c)
 
         j.getContacts(c)
 
+    
+
     if scenario.algorithm == "PIS":
         for j in scenario.usr_list:
-            tpis0=time.time()
             j.socialFactorsUpdating(c)
             j.similaritiesCalculation(c)
-            tpis1 = time.time()
-            # print("tpis------>", tpis1-tpis0)
-
+            
     # Run contacts for every slot after mobility.
     for k in scenario.usr_list:
         # run users contact
-        if scenario.algorithm == 'out':
-            # tstats0 = time.time()
+        if scenario.algorithm == 'out' and scenario.num_slots != scenario.max_time_elapsed:
             k.computeStatistics(c)
-            # tstats1 = time.time()
-            # print("statistics------>", tstats1-tstats0)
-            # tcontact0 = time.time()
             k.userContactOutIn(c)
-            # tcontact1 = time.time()
-            # print("contacts----->", tcontact1-tcontact0)
         if scenario.algorithm == 'in':
             k.computeStatistics(c)
             k.userContact(c)
-        if scenario.algorithm == 'PIS':
-            # tcontact0 = time.time()
+        if scenario.algorithm == 'PIS' or (scenario.algorithm == 'out' and scenario.num_slots == scenario.max_time_elapsed):
             k.userContactOutIn(c)
-            # tcontact1 = time.time()
-            # print("contacts----->", tcontact1-tcontact0)
+           
         # After moving the nodes and exchanging content, check to which zone they belong to increase the right counter
         if k.current_zoi != -1:
             nodes_in_zoi[k.current_zoi][c] += 1
@@ -351,7 +347,7 @@ while c < num_slots:
                 contents_per_slot_per_user[u.id]= []
             contents_per_slot_per_user[u.id].append(len(u.messages_list))
 
-    if c != 0 and c % 10000 == 0 or c == num_slots - 2:
+    if c != 0 and c % 1000 == 0:
         dumping()
 
     # print("SLOT NUMBER: ", c)
