@@ -24,7 +24,7 @@ class Dump:
             x.append(i.x_pos)
             y.append(i.y_pos)
             z.append(len(i.messages_list))
-            l.append(i.myFuture[len(i.myFuture)-1])
+            # l.append(i.myFuture[len(i.myFuture)-1])
 
 
         # print(x)
