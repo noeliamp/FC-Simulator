@@ -33,7 +33,6 @@ class User:
         self.connection_duration = 0
         self.max_time_elapsed = max_time_elapsed
         self.myFuture = OrderedDict()
-        # self.contacts_per_slot = OrderedDict()
         self.current_contacts = []
         self.contacts_frequency_list = [0]* self.scenario.num_users
         self.cross = False
@@ -62,8 +61,8 @@ class User:
         self.simSoc = 0
         self.simPIS = 0
         self.ego = np.zeros((self.scenario.num_users, self.scenario.num_users))
-        self.ego_dict = OrderedDict()
         self.current_zoi = 99
+        self.previous_zoi = 99
         # self.displayUser()
 
     def displayUser(self):
@@ -75,20 +74,14 @@ class User:
         if self.current_zoi == -1 and len(self.messages_list) > 0:
             for m in z.content_list:
                 if m in self.messages_list:
-                    print("checkdb--->",self.id, "estoy en",self.current_zoi,"mensaje de la zoi:", z.id,"lista de mensajes:", len(self.messages_list))
                     if z.id in self.time_elapsed:
-                        print(self.time_elapsed[z.id], self.max_time_elapsed)
                         if self.time_elapsed[z.id] >= self.max_time_elapsed:
                             self.messages_list.remove(m)
                             self.time_elapsed[z.id] = 0
-                            print("borrando mensaje")
                         else:
                             self.time_elapsed[z.id] += 1
                     else:
                         self.time_elapsed[z.id] = 1
-            
-            print("final-->", len(self.messages_list))
-
 
         else:
             self.time_elapsed[0] = 0
@@ -112,9 +105,9 @@ class User:
         return self.cross
             
 
-    def predict(self,nslots):
+    def predict(self,slot):
         self.list_of_zois_future = []
-        for c in range(nslots):
+        for c in range(slot,self.scenario.num_slots):
             if c in self.scenario.long_tracesDic[self.id]:
                 items = self.scenario.long_tracesDic[self.id][c]
                 x = items[0]
@@ -128,8 +121,6 @@ class User:
                             if c not in self.myFuture:
                                 self.myFuture[c] = -1 
 
-
-
                     if self.scenario.city !="Paderborn" and self.scenario.city !="Luxembourg":
                         coords_1 = (z.x, z.y)
                         coords_2 = (x, y)
@@ -142,7 +133,6 @@ class User:
 
             else:
                 if c == 0:
-                    # print(self.id,self.scenario.tracesDic[self.id].keys()[0])
                     first_c = list(self.scenario.long_tracesDic[self.id].keys())[0]
                     items = self.scenario.long_tracesDic[self.id][first_c]
 
@@ -162,17 +152,13 @@ class User:
                                 self.myFuture[c] = -1 
                 else:
                     self.myFuture[c] = self.myFuture[c-1]
-                
-        # print(self.id, 'My future: ', self.myFuture.values()) 
-        # self.rz_visits_info.append(self.myFuture[0])
  
         self.list_of_zois_future.append(99)
         for v in self.myFuture.values():
             if self.list_of_zois_future[-1] != v:
                 self.list_of_zois_future.append(v)     
 
-        # print(self.list_of_zois_future)  
-        self.current_zoi = self.myFuture[c]
+        self.current_zoi = self.myFuture[slot]
 
     # Method to read from the traces (stored in the scenario) each node's new position
     # This method will make a node move in every new slot to the next point in the list
@@ -182,15 +168,16 @@ class User:
             x = items[0]
             y = items[1]
 
-            # print("Next point: ", x, y)   
             self.x_pos = x
             self.y_pos = y
 
+        self.previous_zoi = self.current_zoi
+        self.current_zoi = self.myFuture[c]
+        self.rz_visits_info.append(self.current_zoi)
+
 
     def getContacts(self,c):
-         # print ("First -- My id is ", self.id, " Am I busy for this slot: ", self.busy)
         # add my current RZ to the list
-        self.rz_visits_info.append(self.myFuture[c])
         self.current_contacts = []
 
         # Include the neighbours found in this slot for contacts statistics
@@ -204,9 +191,10 @@ class User:
                     pos_user = geopy.distance.distance(coords_1, coords_2).m
                 # check if user is neighbour
                 if pos_user < self.scenario.radius_of_tx:
-                    # print("my poss--> ", self.x_pos, self.y_pos, "neigbour poss--> ", user.x_pos,user.y_pos, "distancia--> ", pos_user, "radius--> ", self.scenario.radius_of_tx)
-                    # self.contacts_per_slot[c].append(user.id)
                     self.current_contacts.append(user.id)
+
+                    if user.id not in self.contacts_frequency_list:
+                        self.contacts_frequency_list[user.id] = 0
                     self.contacts_frequency_list[user.id] = (self.contacts_frequency_list[user.id]+1)/(c+1)
                     if user.id not in self.dicc_peers.keys():
                         self.dicc_peers[user.id]= []
@@ -215,6 +203,8 @@ class User:
                         self.dicc_peers[user.id].append(c)
 
                 if pos_user > self.scenario.radius_of_tx:
+                    if user.id not in self.contacts_frequency_list:
+                        self.contacts_frequency_list[user.id] = 0
                     self.contacts_frequency_list[user.id] = (self.contacts_frequency_list[user.id]+0)/(c+1)
 
                 # count contact length when the contact is over with that user
@@ -235,14 +225,13 @@ class User:
                                     coun = coun + 1
                                     break
 
-                        previous_zoi = self.myFuture[c-1]
-                        if previous_zoi in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[previous_zoi] = ((self.contacts_count[previous_zoi]*self.prev_contact_len_mean[previous_zoi]) + coun)/(self.contacts_count[previous_zoi]+1)
-                            self.contacts_count[previous_zoi] = self.contacts_count[previous_zoi] + 1
+                        if self.previous_zoi in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.previous_zoi] = ((self.contacts_count[self.previous_zoi]*self.prev_contact_len_mean[self.previous_zoi]) + coun)/(self.contacts_count[self.previous_zoi]+1)
+                            self.contacts_count[self.previous_zoi] = self.contacts_count[self.previous_zoi] + 1
 
-                        if previous_zoi not in self.prev_contact_len_mean:
-                            self.prev_contact_len_mean[previous_zoi] = coun
-                            self.contacts_count[previous_zoi] = 1
+                        if self.previous_zoi not in self.prev_contact_len_mean:
+                            self.prev_contact_len_mean[self.previous_zoi] = coun
+                            self.contacts_count[self.previous_zoi] = 1
 
                     if c == self.scenario.num_slots-1 and c == self.dicc_peers[user.id][-1]:
                         ind = -1
@@ -267,7 +256,6 @@ class User:
     def computeStatistics(self,c):                         
         # statistics for decision making
         # computing the mean number of contacts
-        # num_contacts = len(self.contacts_per_slot[c])
         num_contacts = len(self.current_contacts)
 
         if c == 0:
@@ -307,8 +295,8 @@ class User:
         if self.busy == False:
             # Once we have the list of neighbours, first check if there is a previous connection ongoing and the peer is still inside my tx range
             # which is the same as being in the neighbours list since we checked the positions above
-            # if self.ongoing_conn == True and self.prev_peer in self.contacts_per_slot[c]:
-            if self.ongoing_conn == True and self.prev_peer in self.current_contacts:
+    
+            if self.ongoing_conn == True and self.prev_peer.id in self.current_contacts:
 
                 self.connection_duration += 1
                 self.prev_peer.connection_duration += 1
@@ -318,9 +306,7 @@ class User:
             # else exchange data with a channel rate per slot
             else:
                 # if my prev peer is not in my communication range we don't exchange data anymore
-                # if self.ongoing_conn == True and self.prev_peer not in self.contacts_per_slot[c]:
-                if self.ongoing_conn == True and self.prev_peer not in self.current_contacts:
-
+                if self.ongoing_conn == True and self.prev_peer.id not in self.current_contacts:
                     if self.connection_duration not in self.scenario.connection_duration_list.keys():
                         self.scenario.connection_duration_list[self.connection_duration] = 1
                     else:
@@ -332,6 +318,7 @@ class User:
                     else:
                         self.scenario.connection_location_list[self.current_zoi] +=1
 
+                
                     # reset all parameters to start clean with a new peer
                     self.connection_duration = 0
                     self.prev_peer.connection_duration = 0
@@ -339,12 +326,13 @@ class User:
                     self.prev_peer.exchange_list = []
                     self.ongoing_conn = False
                     self.prev_peer.ongoing_conn = False
+                    self.prev_peer = None
                 
 
                 # Continue looking for neighbours   
-                if self.final_stat > 0.5 or self.scenario.max_time_elapsed == self.scenario.num_slots:
+                if self.final_stat > self.scenario.statis or self.scenario.max_time_elapsed == self.scenario.num_slots or self.scenario.algorithm == "PIS":
                     neighbour = None
-                    # for neigid in self.contacts_per_slot[c]:
+                    np.random.shuffle(self.current_contacts)
                     for neigid in self.current_contacts:
                         for n in self.scenario.usr_list:
                             if n.id == neigid:
@@ -353,19 +341,17 @@ class User:
                                     if self.scenario.algorithm != "PIS" and self.scenario.max_time_elapsed != self.scenario.num_slots:
                                         if (self.current_zoi == -1 and self.crossing(c)) or (neig.current_zoi == -1 and neig.crossing(c)):
                                             neighbour = neig
-                                            break
-                                        if self.current_zoi != -1 and neig.current_zoi != -1:
+                                        if self.current_zoi != -1 and neig.current_zoi != -1 and (self.current_zoi == neig.current_zoi):
                                             neighbour = neig
-                                            break
                                     if self.scenario.algorithm == "PIS" or self.scenario.max_time_elapsed == self.scenario.num_slots:
                                         neighbour = neig
-                                        break
-
+                                
+                    
                     if neighbour != None:
                         # Once we have a new neighbour chosen, we start exchanging, with PIS only if condition is True
                         if self.scenario.algorithm == "PIS":
                             self.PIS(neighbour) 
-                        if self.scenario.algorithm != "PIS" or (self.simPIS + self.scenario.gamma) > 0:
+                        if self.scenario.algorithm != "PIS" or (self.scenario.algorithm == "PIS" and (self.simPIS + self.scenario.gamma) > 0):
                             self.exchange_list = []
                             neighbour.exchange_list = []
                             # First, check the messages missing in the peers devices and add them to the exchange list of messages of every peer
@@ -381,9 +367,10 @@ class User:
                                     
                             # After choosing the messages that are missing in the peer, we need to shuffle the list
                             np.random.shuffle(neighbour.exchange_list)
-                            # Second, exchange the data with peer!! 
-                            if len(self.exchange_list)>0 or len(neighbour.exchange_list) > 0:
-                                self.exchangeData(neighbour,c)
+                            # Second, exchange the data with peer!!                           
+                            self.exchangeData(neighbour,c)
+
+            
 
                       
 
@@ -392,7 +379,6 @@ class User:
         if self.busy == False and self.current_zoi != -1:
             # Once we have the list of neighbours, first check if there is a previous connection ongoing and the peer is still inside my tx range
             # which is the same as been in the neighbours list since we checked the positions above
-            # if self.ongoing_conn == True and self.prev_peer in self.contacts_per_slot[c]:
             if self.ongoing_conn == True and self.prev_peer.id in self.current_contacts:
                 self.connection_duration += 1
                 self.prev_peer.connection_duration += 1
@@ -402,7 +388,6 @@ class User:
             # else exchange data with a probability and within a channel rate per slot
             else:
                 # if my prev peer is not in my communication range we don't exchange data anymore
-                # if self.ongoing_conn == True and self.prev_peer not in self.contacts_per_slot[c]:
                 if self.ongoing_conn == True and self.prev_peer.id not in self.current_contacts:
 
                     if self.connection_duration not in self.scenario.connection_duration_list.keys():
@@ -423,19 +408,18 @@ class User:
                     self.prev_peer.exchange_list = []
                     self.ongoing_conn = False
                     self.prev_peer.ongoing_conn = False
+                    self.prev_peer = None
 
                 # Continue looking for neighbours   
                 # In case we want to connect with more than one neighbour we need to run a loop. Now we only select one neighbour from the list.
                 if self.final_stat > 0.5:
                     neighbour = None
-                    # for neig in self.contacts_per_slot[c]:
                     for neigid in self.current_contacts:
                         for n in self.scenario.usr_list:
                             if n.id == neigid:
                                 neig = n
                                 if not neig.busy and neig.ongoing_conn == False and neig.current_zoi != -1:
                                     neighbour = neig
-                                    # print("I found a peer not busy and without ongoing connection. ", neighbour.id)
                                     break
                     if neighbour != None:
                         self.exchange_list = []
@@ -455,20 +439,16 @@ class User:
                         # After choosing the messages that are missing in the peer, we need to shuffle the list
                         np.random.shuffle(neighbour.exchange_list)
                         # Second, exchange the data with peer!!
-                        if len(self.exchange_list)>0 or len(neighbour.exchange_list) > 0:
-                            print("my zoi", self.current_zoi,"neigbour zoi",neighbour.current_zoi)
-                            self.exchangeData(neighbour,c)
+                        self.exchangeData(neighbour,c)
                             
 
 
     def socialFactorsUpdating(self,c):
-        # for ide in self.contacts_per_slot[c]:
         for ide in self.current_contacts:
             for peerScn in self.scenario.usr_list:
                 if peerScn.id == ide:
                     peer = peerScn
             # Physical Proximity Updating
-            # for peerContact in peer.contacts_per_slot[c]:
             for peerContact in peer.current_contacts:
 
                 self.ego[peer.id][peerContact] = peer.contacts_frequency_list[peerContact]
@@ -499,16 +479,15 @@ class User:
                     simPro = []
                     simInt = []
                     simSoc = []
-                    # for cSelf in self.contacts_per_slot[c]:
-                    for cSelf in self.current_contacts:
 
-                        # if cSelf in destination.contacts_per_slot[c]:
+                    for cSelf in self.current_contacts:
                         if cSelf in destination.current_contacts:
 
                             self.ego[cSelf][destination.id] 
                                 
                     for iDest in destination.self_interests:
                         sum_int += self.contacts_interests[iDest]
+                        
                     
                     for rDest in destination.self_relations:
                         sum_soc += self.contacts_relations[rDest]
@@ -531,17 +510,13 @@ class User:
         simDevPro = 0
         if self.simPro+peer.simPro != 0:
             simDevPro = (peer.simPro-self.simPro)/(self.simPro+peer.simPro)
-        # print("simDevPro",simDevPro)
         simDevInt = 0
         if self.simInt+peer.simInt != 0:
             simDevInt = (peer.simInt-self.simInt)/(self.simInt+peer.simInt)
-        # print("simDevInt",simDevInt)
         simDevSoc = 0
         if self.simSoc+peer.simSoc != 0:
             simDevSoc = (peer.simSoc-self.simSoc)/(self.simSoc+peer.simSoc)
-        # print("simDevSoc",simDevSoc)
         self.simPIS = (self.scenario.rho*simDevPro)+(self.scenario.sigma*simDevInt)+(self.scenario.tau*simDevSoc)
-        # print("simPIS",self.simPIS)
 
     # Method to check which DB is smaller and start exchanging it. 
     # At this point We have the messages to be exchange (exchange_list) and the total list of sizes (exchange_size).
@@ -554,14 +529,32 @@ class User:
         self.scenario.attempts +=1
         self.connection_duration += 1
         neighbour.connection_duration +=  1
+        tome = False
     
-        if len(self.exchange_list) > 0:
+
+        if len(self.exchange_list) > 0 and len(neighbour.exchange_list) == 0: 
+            for i in range(2):
+                if len(self.exchange_list) > i:
+                    message = self.exchange_list[i]
+                    if message not in neighbour.messages_list:
+                        neighbour.messages_list.append(message)
+                        self.exchange_list.remove(message)
+                    
+        if len(neighbour.exchange_list) > 0 and len(self.exchange_list) == 0:
+            for i in range(2):
+                if len(neighbour.exchange_list) > i:
+                    message = neighbour.exchange_list[i]
+                    if message not in self.messages_list:
+                        self.messages_list.append(message)
+                        neighbour.exchange_list.remove(message)
+
+
+        if len(self.exchange_list) > 0 and len(neighbour.exchange_list) > 0:
             message = self.exchange_list[0]
             if message not in neighbour.messages_list:
                 neighbour.messages_list.append(message)
                 self.exchange_list.remove(message)
                     
-        if len(neighbour.exchange_list) > 0:
             message = neighbour.exchange_list[0]
             if message not in self.messages_list:
                 self.messages_list.append(message)
@@ -569,7 +562,6 @@ class User:
             
 
         # If any of the peers DB has not been totally exchanged we have to store the peer device to keep the connection for next slot
-        # print("COMPROBAR---------> ",self.exchange_counter, self.exchange_size, neighbour.exchange_counter, neighbour.exchange_size,len(self.messages_list),len(neighbour.messages_list))
         if len(self.exchange_list) > 0 or len(neighbour.exchange_list) > 0:
             self.prev_peer = neighbour
             self.ongoing_conn = True
@@ -578,18 +570,16 @@ class User:
             
         # If everything has been exchanged, reset parameters
         if len(self.exchange_list) == 0 and len(neighbour.exchange_list) == 0:
-            # print("EVERYTHING HAS BEEN EXCHANGED WITH: ", self.exchange_counter,self.exchange_size)
-            # print("ENTRO AQUI", self.exchange_counter, self.exchange_size,neighbour.exchange_counter, neighbour.exchange_size, self.used_memory, self.used_memory)
             if self.connection_duration not in self.scenario.connection_duration_list.keys():
                 self.scenario.connection_duration_list[self.connection_duration] = 1
             else:
                 self.scenario.connection_duration_list[self.connection_duration] +=1
-            # print("CONNEC DURATION normal--> ", self.connection_duration)
             # Add the location of the connection
             if self.current_zoi not in self.scenario.connection_location_list:
                 self.scenario.connection_location_list[self.current_zoi] = 1
             else:
                 self.scenario.connection_location_list[self.current_zoi] +=1
+
 
 
             self.connection_duration = 0
@@ -598,3 +588,5 @@ class User:
             neighbour.ongoing_conn = False
             self.exchange_list = []
             neighbour.exchange_list = []
+            self.prev_peer = None
+            neighbour.prev_peer = None

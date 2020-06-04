@@ -57,7 +57,7 @@ content_generation_users = data["content_generation_users"]
 traces_folder = data["traces_folder"]
 num_slots = data["num_slots"]                           # number of repetitions in one simulation
 max_time_elapsed = data["max_time_elapsed"]
-ttl = data["msg_ttl"]
+ttl = num_slots
 algorithm = data["algorithm"]
 if algorithm == "PIS":
     gamma = data["gamma"]
@@ -65,11 +65,12 @@ else:
     gamma = -100000
 store = data["store"]
 days = str(int((num_slots/3600)/24))
+statis = data["statis"]
 
 # Do we want to set a seed?
 seed_list = [15482669,15482681,15482683,15482711,15482729,15482941,15482947,15482977,15482993,15483023,15483029,15483067,15483077,15483079,15483089,15483101,15483103,15482743,15482771,15482773,15482783,15482807,15482809,15482827,15482851,15482861,15482893,15482911,15482917,15482923]
 seed = int(traces_file)
-np.random.seed(seed_list[seed])
+np.random.seed(seed_list[1])
 
 print("Content size ", content_size)
 print("Max memory ", max_memory)
@@ -77,9 +78,7 @@ print("Max memory ", max_memory)
   
 def dumping():
     for u in scenario.usr_list:
-        # contacts_per_slot_per_user[u.id] = u.contacts_per_slot
         rzs_per_slot_per_user[u.id] = u.rz_visits_info
-    
         
         contact_mean[0] = u.prev_contact_mean[0]
         contact_mean[1] = u.prev_contact_mean[1]
@@ -97,7 +96,6 @@ def dumping():
     dump.availabilityPerContent(a_per_content)
     dump.replicasPerContent(replicas)
     dump.nodesZoiPerSlot(nodes_in_zoi)
-    # dump.nodesInRz()
     
 
 # DATA STRUCTURES 
@@ -117,7 +115,7 @@ num_zois=density_zois
 
 # CREATION OF SCENARIO With num_zois number of zois
 scenario = Scenario(radius_of_replication, max_area,delta,radius_of_tx,channel_rate,num_users,num_zois, traces_folder,
-num_slots,algorithm,max_memory,max_time_elapsed,gamma)
+num_slots,algorithm,max_memory,max_time_elapsed,gamma,statis)
 
 ################## Parse traces in case we are using them
 traces_file = days
@@ -125,7 +123,7 @@ if traces_folder == "none":
     scenario.parsePaderbornTraces(traces_folder,traces_file)
 
 if traces_folder == "Rome":
-    scenario.parseRomaTraces(traces_folder,traces_file)
+    scenario.parseRomaTraces(traces_folder,traces_file,days)
 
 if traces_folder == "SanFrancisco":
     scenario.parseSanFranciscoTraces(traces_folder)
@@ -139,8 +137,8 @@ for z in scenario.zois_list:
     nodes_in_zoi[z.id][0] = 0
 
 # CREATION OF USERS with traces
+
 if traces_folder != "none":
-    print("entrando en add remove")
     scenario.addRemoveNodes(0)
 
 
@@ -170,13 +168,15 @@ bar = progressbar.ProgressBar(maxval=num_slots, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 bar.start()
 ################## ################## Loop per slot into a simulation ################## ##################
-scenario.cutTracesDict(0,1030)
+nextHop = 1030
+scenario.cutTracesDict(0,nextHop)
 while c < num_slots:
-    print("SLOT--->", c)
     bar.update(c)
 
     if c % 1000 == 0:
-        scenario.cutTracesDict(c,c+1030)
+        scenario.cutTracesDict(c,c+nextHop)
+
+    scenario.addRemoveNodes(c)
 
     # shuffle users lists
     np.random.shuffle(scenario.usr_list)
@@ -193,24 +193,19 @@ while c < num_slots:
     for m in scenario.zois_list[0].content_list:       
         # if message ttl is over, kill the content, otherwise increment counter for ttl
         if m.ttl == ttl:
-            # print("im dying")
             m.die()
         else:
             m.ttl += 1
     
     # Creating new contents if required at the specific time slot
     if content_generation_time != "none":
-        if c % content_generation_time == 0:
+        if c % content_generation_time == 0 or c == 1:
             userCounter=0
             np.random.shuffle(scenario.usr_list)
             for u in scenario.usr_list:
                 if u.current_zoi != -1:
-                    # print("User id ", u.id)
                     msg = Message(uuid.uuid4(),content_size,scenario,c)
-                    # print("Creating contents at slot: ", c)
-                    # print("User msg list ", len(u.messages_list))
                     u.messages_list.append(msg)  
-                    # print("User msg list ", len(u.messages_list))
                     userCounter+=1
                     scenario.zois_list[u.current_zoi].content_list.append(msg)
                     if userCounter == content_generation_users:
@@ -223,7 +218,7 @@ while c < num_slots:
     for j in scenario.usr_list:
         j.busy = False
         j.readTraces(c)
-        j.current_zoi = j.myFuture[c]
+
         if j.current_zoi == -1 and scenario.algorithm != 'PIS':
             for z in scenario.zois_list:
                 j.checkDB(z,c)
@@ -231,7 +226,6 @@ while c < num_slots:
 
         j.getContacts(c)
 
-    
 
     if scenario.algorithm == "PIS":
         for j in scenario.usr_list:
@@ -263,7 +257,7 @@ while c < num_slots:
             for m in k.messages_list:
                 m.counter[2] += 1
 
-    scenario.addRemoveNodes(c)
+    # scenario.addRemoveNodes(c)
     ################################## Availability ############################################
     # we add the current slot availability to the list
     
@@ -282,8 +276,8 @@ while c < num_slots:
                 a_per_content_only_value[str(m.id)][0] = 0
                 a_per_content_only_value[str(m.id)][1] = 0
             # first add availability for ZOI 0
+            nodes = nodes_in_zoi[0][c]
             if c % 20 == 0:
-                nodes = nodes_in_zoi[0][c]
                 if nodes != 0:
                     a_per_content[str(m.id)][0].append(m.counter[0]/nodes)
                 else:
@@ -350,7 +344,6 @@ while c < num_slots:
     if c != 0 and c % 1000 == 0:
         dumping()
 
-    # print("SLOT NUMBER: ", c)
     c += 1
     ################################## ############## ############################################
 
@@ -364,7 +357,6 @@ for k in scenario.usr_list:
 
         k.ongoing_conn = False
         k.prev_peer.ongoing_conn = False
-        # print("CONNEC DURATION out--> ", k.connection_duration)
 
          # Add the location of the connection
         previous_zoi = k.myFuture[num_slots-1]

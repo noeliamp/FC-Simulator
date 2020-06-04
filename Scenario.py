@@ -12,13 +12,13 @@ class Scenario:
     'Common base class for all scenarios'
 
     def __init__(self, radius_of_replication, max_area,delta,radius_of_tx,channel_rate,num_users,num_zois,
-                    traces_folder,num_slots, algorithm,max_memory,max_time_elpased,gamma):
+                    traces_folder,num_slots, algorithm,max_memory,max_time_elpased,gamma,statis):
         # print ("Creating new scenario...")
         self.num_slots = num_slots
         self.square_radius_of_replication = radius_of_replication*radius_of_replication
         self.radius_of_replication = radius_of_replication
         self.max_area = max_area
-        self.delta = delta         # slot time
+        self.delta = delta        
         self.radius_of_tx = radius_of_tx
         self.square_radius_of_tx = radius_of_tx*radius_of_tx
         self.usr_list = []
@@ -30,6 +30,7 @@ class Scenario:
         self.zois_list = []
         self.num_zois = num_zois
         self.tracesDic = OrderedDict()
+        self.long_tracesDic = OrderedDict()
         self.attempts = 0
         self.connection_duration_list = OrderedDict()
         self.connection_location_list = OrderedDict()
@@ -45,7 +46,7 @@ class Scenario:
         self.rho = 0.333
         self.sigma = 0.333
         self.tau = 0.333
-        self.long_tracesDic = OrderedDict()     
+        self.statis = statis
 
         # If we only define 1 zoi we assume it is going to be located in the center of the scenario
         if self.num_zois == 1:
@@ -153,15 +154,13 @@ class Scenario:
                     self.tracesDic[node] = OrderedDict()
                     
                 # Stop storing positions if we already have 10000 slots     
-                # if len(self.tracesDic[node]) <= 10000:
                 self.tracesDic[node][time] = [x,y,speed]
-            # print("node ", node , "time", time , "x", x, "y",y, "speed", speed)
 
 
            
     # Traces parser for each scenario, we parse the traces after the scenario creation, depending on which folder (map) and file (specific traces for a given seed in that map)
-    def parseRomaTraces(self, folder, file):
-        replacementDicc= OrderedDict()
+    def parseRomaTraces(self, folder, file,dias):
+        replacementDicc = OrderedDict()
         f=open('traces/' + folder + '/'+ file +'_Rome.txt',"r")
         lines=f.readlines()
         for line in lines:
@@ -180,19 +179,16 @@ class Scenario:
 
             totalSeconds = days+hours+minutes+seconds
             time = int(totalSeconds)
+
             coordinates = re.findall("\d+\.\d+", lp[2])
             x = float(coordinates[0])
             y = float(coordinates[1])
 
             # We add the line info to each node dictionary
-            # if time < self.num_slots:
-
             if node not in replacementDicc:
                 replacementDicc[node] = OrderedDict()
-    
             replacementDicc[node][time] = [x,y]
-           
-            # print("node ", node , "time", time , "x", x, "y",y)
+
 
         nodes_counter=0
         for key,value in replacementDicc.items():
@@ -200,24 +196,22 @@ class Scenario:
             self.long_tracesDic[nodes_counter] = value
             nodes_counter +=1 
 
-        print("Cuantos nodos hay---> ", nodes_counter)
-
-        self.num_users = nodes_counter
+        self.num_users = len(self.long_tracesDic)
 
 
 
     def cutTracesDict(self, ini, end):
         self.tracesDic = OrderedDict()
-        print("CUTTING")
         self.tracesDic = OrderedDict()
         for key,value in self.long_tracesDic.items():
             count = 0
             for k,v in value.items():
-                if k>=ini and k<end:
+                if k>=ini and k<=end:
                     if count == 0:
                         self.tracesDic[key] = OrderedDict()
                         count = 1
                     self.tracesDic[key][k] = v
+
 
 
     def parseSanFranciscoTraces(self, folder):
@@ -260,23 +254,20 @@ class Scenario:
                 counter_users += 1
 
         self.num_users = counter_users
-        print("Cuantos nodos hay---> ", self.num_users)
 
-    def addRemoveNodes(self,c):
+    def addRemoveNodes(self,c): 
         for k in self.tracesDic.keys():
             if len(self.long_tracesDic[k].keys())>0 and c in self.long_tracesDic[k].keys():
                 if self.long_tracesDic[k].keys()[0] == c:
                     x = self.long_tracesDic[k].items()[0][1][0]
                     y = self.long_tracesDic[k].items()[0][1][1] 
-                    # print("El nodo", k, " entra POR PRIMERA VEZ en", c)
                     user = User(k,x,y, self,self.max_memory,self.max_time_elapsed)
                     self.usr_list.append(user)
-                    user.predict(self.num_slots)
-                    # print(c, len(user.myFuture),user.myFuture[c],user.rz_visits_info)
+                    user.predict(c)
                     user.rz_visits_info.append(user.myFuture[c])
 
+
                 if self.long_tracesDic[k].keys()[-1] == c:
-                    # print("El nodo", k, " sale AL FINAL DE TODO en", c)
                     for u in self.usr_list:
                         if k == u.id:
                             self.usr_list.remove(u)  
@@ -284,11 +275,9 @@ class Scenario:
                 if  self.long_tracesDic[k].keys()[0] != c and self.long_tracesDic[k].keys()[-1] != c:
                     actual_index = self.long_tracesDic[k].keys().index(c)
                     previous_key = list(self.long_tracesDic[k].keys())[actual_index-1]
-                    # print("Estoy para entrar--->", c - previous_key)
                     if (c - previous_key) > 300:
                         x = self.long_tracesDic[k].items()[0][1][0]
                         y = self.long_tracesDic[k].items()[0][1][1] 
-                        # print(c - previous_key,"El nodo", k, " entra en", c)
 
                         for user in self.helper_usr_list:
                             if user.id == k:
@@ -297,17 +286,23 @@ class Scenario:
                                 user.rz_visits_info.append(user.myFuture[c])
 
 
-                    
                     actual_index = self.long_tracesDic[k].keys().index(c)
                     next_key = list(self.long_tracesDic[k].keys())[actual_index+1]
-                    # print("Estoy para salir---> ",next_key - c)
                     if (next_key - c) > 300:
-                        # print(c + next_key,"El nodo", k, " sale en", c)
                         for u in self.usr_list:
                             if k == u.id:
                                 self.helper_usr_list.append(u)
                                 self.usr_list.remove(u) 
-                                
+
+            if c not in self.long_tracesDic[k].keys() and (c-1) in self.long_tracesDic[k].keys() and self.long_tracesDic[k].keys()[-1] != (c-1):
+                previous_index = self.long_tracesDic[k].keys().index(c-1)
+                print(len(self.long_tracesDic[k]), previous_index + 1)
+                next_key = list(self.long_tracesDic[k].keys())[previous_index+1]
+                if (next_key - c) > 300:
+                    for u in self.usr_list:
+                        if k == u.id:
+                            self.helper_usr_list.append(u)
+                            self.usr_list.remove(u) 
 
 
     def parseLuxembourgTraces(self, folder,file):
@@ -321,5 +316,4 @@ class Scenario:
                 for coord in value:
                     self.long_tracesDic[int(k)][int(key)].append(float(coord))
        
-        print("Cuantos nodos hay---> ", len(self.long_tracesDic))
         self.num_users = len(self.long_tracesDic)
