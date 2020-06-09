@@ -115,11 +115,12 @@ class User:
                 for z in self.scenario.zois_list:
                     if self.scenario.city =="Paderborn" or self.scenario.city =="Luxembourg":
                         d = np.power(x - z.x,2) + np.power(y - z.y,2)
-                        if d < z.scenario.radius_of_replication:
+                        if d < z.scenario.square_radius_of_replication:
                             self.myFuture[c] = z.id
-                        if d > z.scenario.radius_of_replication:
+                        if d > z.scenario.square_radius_of_replication:
                             if c not in self.myFuture:
                                 self.myFuture[c] = -1 
+                        
 
                     if self.scenario.city !="Paderborn" and self.scenario.city !="Luxembourg":
                         coords_1 = (z.x, z.y)
@@ -141,15 +142,20 @@ class User:
                     for z in self.scenario.zois_list:
                         if self.scenario.city =="Paderborn" or self.scenario.city =="Luxembourg":
                             d = np.power(x - z.x,2) + np.power(y - z.y,2)
+                            if d < z.scenario.square_radius_of_replication:
+                                self.myFuture[c] = z.id
+                            if d > z.scenario.square_radius_of_replication:
+                                if c not in self.myFuture:
+                                    self.myFuture[c] = -1 
                         if self.scenario.city !="Paderborn" and self.scenario.city !="Luxembourg":
                             coords_1 = (z.x, z.y)
                             coords_2 = (x, y)
                             d = geopy.distance.distance(coords_1, coords_2).m
-                        if d < z.scenario.radius_of_replication:
-                            self.myFuture[c] = z.id
-                        if d > z.scenario.radius_of_replication:
-                            if c not in self.myFuture:
-                                self.myFuture[c] = -1 
+                            if d < z.scenario.radius_of_replication:
+                                self.myFuture[c] = z.id
+                            if d > z.scenario.radius_of_replication:
+                                if c not in self.myFuture:
+                                    self.myFuture[c] = -1 
                 else:
                     self.myFuture[c] = self.myFuture[c-1]
  
@@ -159,6 +165,7 @@ class User:
                 self.list_of_zois_future.append(v)     
 
         self.current_zoi = self.myFuture[slot]
+
 
     # Method to read from the traces (stored in the scenario) each node's new position
     # This method will make a node move in every new slot to the next point in the list
@@ -185,27 +192,48 @@ class User:
             if user.id != self.id:
                 if self.scenario.city =="Paderborn" or self.scenario.city =="Luxembourg":
                     pos_user = np.power(user.x_pos-self.x_pos,2) + np.power(user.y_pos-self.y_pos,2)
+                    # check if user is neighbour
+                    if pos_user < self.scenario.square_radius_of_tx:
+                        self.current_contacts.append(user.id)
+
+                        if user.id not in self.contacts_frequency_list:
+                            self.contacts_frequency_list[user.id] = 0
+                        self.contacts_frequency_list[user.id] = (self.contacts_frequency_list[user.id]+1)/(c+1)
+                        if user.id not in self.dicc_peers.keys():
+                            self.dicc_peers[user.id]= []
+                            self.dicc_peers[user.id].append(c)
+                        else:
+                            self.dicc_peers[user.id].append(c)
+
+                    if pos_user > self.scenario.square_radius_of_tx:
+                        if user.id not in self.contacts_frequency_list:
+                            self.contacts_frequency_list[user.id] = 0
+                        self.contacts_frequency_list[user.id] = (self.contacts_frequency_list[user.id]+0)/(c+1)
+
+                    if self.id == 7:
+                        print(self.id,self.current_contacts, self.current_zoi,self.x_pos,self.y_pos)
+
                 if self.scenario.city != "Paderborn" and self.scenario.city !="Luxembourg":
                     coords_1 = (user.x_pos, user.y_pos)
                     coords_2 = (self.x_pos, self.y_pos)
                     pos_user = geopy.distance.distance(coords_1, coords_2).m
-                # check if user is neighbour
-                if pos_user < self.scenario.radius_of_tx:
-                    self.current_contacts.append(user.id)
+                    # check if user is neighbour
+                    if pos_user < self.scenario.radius_of_tx:
+                        self.current_contacts.append(user.id)
 
-                    if user.id not in self.contacts_frequency_list:
-                        self.contacts_frequency_list[user.id] = 0
-                    self.contacts_frequency_list[user.id] = (self.contacts_frequency_list[user.id]+1)/(c+1)
-                    if user.id not in self.dicc_peers.keys():
-                        self.dicc_peers[user.id]= []
-                        self.dicc_peers[user.id].append(c)
-                    else:
-                        self.dicc_peers[user.id].append(c)
+                        if user.id not in self.contacts_frequency_list:
+                            self.contacts_frequency_list[user.id] = 0
+                        self.contacts_frequency_list[user.id] = (self.contacts_frequency_list[user.id]+1)/(c+1)
+                        if user.id not in self.dicc_peers.keys():
+                            self.dicc_peers[user.id]= []
+                            self.dicc_peers[user.id].append(c)
+                        else:
+                            self.dicc_peers[user.id].append(c)
 
-                if pos_user > self.scenario.radius_of_tx:
-                    if user.id not in self.contacts_frequency_list:
-                        self.contacts_frequency_list[user.id] = 0
-                    self.contacts_frequency_list[user.id] = (self.contacts_frequency_list[user.id]+0)/(c+1)
+                    if pos_user > self.scenario.radius_of_tx:
+                        if user.id not in self.contacts_frequency_list:
+                            self.contacts_frequency_list[user.id] = 0
+                        self.contacts_frequency_list[user.id] = (self.contacts_frequency_list[user.id]+0)/(c+1)
 
                 # count contact length when the contact is over with that user
                 if user.id in self.dicc_peers and c != 0:

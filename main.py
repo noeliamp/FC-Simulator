@@ -117,9 +117,15 @@ num_zois=density_zois
 scenario = Scenario(radius_of_replication, max_area,delta,radius_of_tx,channel_rate,num_users,num_zois, traces_folder,
 num_slots,algorithm,max_memory,max_time_elapsed,gamma,statis)
 
+
+# From here on, start printing out to an external file called 'out'
+orig_stdout = sys.stdout
+f = open('results/'+str(uid)+'/out.txt', 'w')
+sys.stdout = f    
+
 ################## Parse traces in case we are using them
 traces_file = days
-if traces_folder == "none":
+if "Paderborn" in traces_folder:
     scenario.parsePaderbornTraces(traces_folder,traces_file)
 
 if traces_folder == "Rome":
@@ -138,7 +144,7 @@ for z in scenario.zois_list:
 
 # CREATION OF USERS with traces
 
-if traces_folder != "none":
+if "Paderborn" not in traces_folder:
     scenario.addRemoveNodes(0)
 
 
@@ -157,10 +163,7 @@ for z in scenario.zois_list:
 
 
 
-# From here on, start printing out to an external file called 'out'
-orig_stdout = sys.stdout
-f = open('results/'+str(uid)+'/out.txt', 'w')
-sys.stdout = f    
+
 
 # Simulation STARTS!!!
 # progress bar
@@ -169,14 +172,17 @@ bar = progressbar.ProgressBar(maxval=num_slots, \
 bar.start()
 ################## ################## Loop per slot into a simulation ################## ##################
 nextHop = 1030
-scenario.cutTracesDict(0,nextHop)
+# scenario.cutTracesDict(0,nextHop)
 while c < num_slots:
+    print("SLOT-->",c)
     bar.update(c)
 
-    if c % 1000 == 0:
-        scenario.cutTracesDict(c,c+nextHop)
+    # if c % 1000 == 0:
+    #     scenario.cutTracesDict(c,c+nextHop)
 
-    scenario.addRemoveNodes(c)
+    if "Paderborn" not in traces_folder:
+        scenario.addRemoveNodes(c)
+
 
     # shuffle users lists
     np.random.shuffle(scenario.usr_list)

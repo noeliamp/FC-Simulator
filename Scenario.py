@@ -66,7 +66,6 @@ class Scenario:
                 if traces_folder != "SanFrancisco" and traces_folder != "Rome" and traces_folder != "Luxembourg":
                     self.city="Paderborn"
 
-                    
                 f=open('traces/POIS/'+self.city+'-POI-0.wkt',"r")
                 lines=f.readlines()
                 # First we read the points from the file
@@ -125,24 +124,26 @@ class Scenario:
 
     # Traces parser for each scenario, we parse the traces after the scenario creation, depending on which folder (map) and file (specific traces for a given seed in that map)
     def parsePaderbornTraces(self, folder, file):
+        self.num_users=51
         f=open('traces/' + folder + '/'+ file +'_MovementNs2Report.txt',"r")
         lines=f.readlines()
         count = 0
         for line in lines:
             lp = line.split()
             if "at" not in line: 
-                node = line[line.find("(")+1:line.find(")")]
+                node = int(line[line.find("(")+1:line.find(")")])
                 if "X_" in line:
                     x = float(lp[3])
                 if "Y_" in line:
                     y = float(lp[3])
-                time = float(0)
+                time = int(0)
                 speed = float(0)
                 count += 1
             else:
                 count = 2
                 node = int(line[line.find("(")+1:line.find(")")])
                 time = float(lp[2])
+                time = int(time)
                 x = float(lp[5])
                 y = float(lp[6])
                 speed = float(lp[7][:-1])
@@ -152,11 +153,29 @@ class Scenario:
                 count = 0
                 if node not in self.tracesDic:
                     self.tracesDic[node] = OrderedDict()
+                    self.tracesDic[node][time] = [x,y,speed]
+                    # only for predict
+                    self.long_tracesDic[node] = OrderedDict()
+                    self.long_tracesDic[node][time] = [x,y,speed]
+
+                    x = self.tracesDic[node].items()[0][1][0]
+                    y = self.tracesDic[node].items()[0][1][1] 
+                    user = User(node,x,y, self,self.max_memory,self.max_time_elapsed)
+                    self.usr_list.append(user)
                     
-                # Stop storing positions if we already have 10000 slots     
-                self.tracesDic[node][time] = [x,y,speed]
+                    
+                else:
+                    self.tracesDic[node][time] = [x,y,speed]
+                    # only for predict
+                    self.long_tracesDic[node][time] = [x,y,speed]
 
 
+        self.num_users = len(self.tracesDic)
+        print("nodos-->",self.num_users)
+
+        for user in self.usr_list:
+            user.predict(0)
+            user.rz_visits_info.append(user.myFuture[0])
            
     # Traces parser for each scenario, we parse the traces after the scenario creation, depending on which folder (map) and file (specific traces for a given seed in that map)
     def parseRomaTraces(self, folder, file,dias):
