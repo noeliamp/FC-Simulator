@@ -12,7 +12,7 @@ class Scenario:
     'Common base class for all scenarios'
 
     def __init__(self, radius_of_replication, max_area,delta,radius_of_tx,channel_rate,num_users,num_zois,
-                    traces_folder,num_slots, algorithm,max_memory,max_time_elpased,gamma,statis):
+                    traces_folder,num_slots, algorithm,max_memory,max_time_elpased,gamma,statis,alp):
         # print ("Creating new scenario...")
         self.num_slots = num_slots
         self.square_radius_of_replication = radius_of_replication*radius_of_replication
@@ -47,6 +47,7 @@ class Scenario:
         self.sigma = 0.333
         self.tau = 0.333
         self.statis = statis
+        self.alp = alp
 
         # If we only define 1 zoi we assume it is going to be located in the center of the scenario
         if self.num_zois == 1:
@@ -216,6 +217,8 @@ class Scenario:
             nodes_counter +=1 
 
         self.num_users = len(self.long_tracesDic)
+        print("nodos-->",self.num_users)
+
 
 
 

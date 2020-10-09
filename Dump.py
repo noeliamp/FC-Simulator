@@ -63,7 +63,7 @@ class Dump:
 
     ####### Connection duration list
 
-    def connectionDurationAndMore(self,contents_per_slot_per_user,rzs_per_slot_per_user,contact_mean,contact_len_mean,a_per_content_only_value):
+    def connectionDurationAndMore(self,contents_per_slot_per_user,rzs_per_slot_per_user,contact_mean,contact_len_mean,a_per_content_only_value,contacts_per_node):
         # with open('results/'+str(self.uid)+'/contacts-per-slot-per-user.json', 'w') as fp:
         #     json.dump(contacts_per_slot_per_user, fp)
 
@@ -87,6 +87,9 @@ class Dump:
 
         with open('results/'+str(self.uid)+'/a-per-content-only-value.json', 'w') as fp7:
             json.dump(a_per_content_only_value, fp7)
+
+        with open('results/'+str(self.uid)+'/contacts-per-node.json', 'w') as fp8:
+            json.dump(contacts_per_node, fp8)
 
 
      ####### Availability per content per slot
@@ -131,3 +134,8 @@ class Dump:
         for n in self.scenario.usr_list:
             outfile.writelines(str(n.myFuture.values()) + "\n")
         outfile.close()
+
+    ####### Probabilities per user 
+    def probabilities(self,probabilities):
+        with open('results/'+str(self.uid)+'/probabilities.json', 'w') as fp:
+            json.dump(probabilities, fp)

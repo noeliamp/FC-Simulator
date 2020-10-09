@@ -47,6 +47,10 @@ class User:
         self.prev_contact_len_mean[0] = 0
         self.prev_contact_len_mean[1] = 0
         self.prev_contact_len_mean[-1] = 0
+        self.prev_contents = OrderedDict()
+        self.prev_contents[0] = 0
+        self.prev_contents[1] = 0
+        self.prev_contents[-1] = 0
         self.final_stat = 1
         self.contacts_count = OrderedDict()
         self.contacts_count[0] = 0
@@ -63,6 +67,17 @@ class User:
         self.ego = np.zeros((self.scenario.num_users, self.scenario.num_users))
         self.current_zoi = 99
         self.previous_zoi = 99
+        self.exchange_length = 0
+        self.p = OrderedDict()
+        self.p[0] = 0.1
+        self.p[1] = 0.1
+        self.p[-1] = 0.1
+        self.t_previous = 0
+        self.prob = OrderedDict()
+        self.prob[0] = OrderedDict()
+        self.prob[1] = OrderedDict()
+        self.prob[-1] = OrderedDict()
+
         # self.displayUser()
 
     def displayUser(self):
@@ -210,8 +225,6 @@ class User:
                             self.contacts_frequency_list[user.id] = 0
                         self.contacts_frequency_list[user.id] = (self.contacts_frequency_list[user.id]+0)/(c+1)
 
-                    if self.id == 7:
-                        print(self.id,self.current_contacts, self.current_zoi,self.x_pos,self.y_pos)
 
                 if self.scenario.city != "Paderborn" and self.scenario.city !="Luxembourg":
                     coords_1 = (user.x_pos, user.y_pos)
@@ -320,6 +333,8 @@ class User:
         
     # method to allow nodes to exchange within a RZ and in the surroundings taking into account a maximum elapse time
     def userContactOutIn(self,c):
+        self.prob[self.current_zoi][c] = self.p[self.current_zoi]
+
         if self.busy == False:
             # Once we have the list of neighbours, first check if there is a previous connection ongoing and the peer is still inside my tx range
             # which is the same as being in the neighbours list since we checked the positions above
@@ -358,7 +373,10 @@ class User:
                 
 
                 # Continue looking for neighbours   
-                if self.final_stat > self.scenario.statis or self.scenario.max_time_elapsed == self.scenario.num_slots or self.scenario.algorithm == "PIS":
+                # if self.final_stat > self.p[self.current_zoi] or self.scenario.max_time_elapsed == self.scenario.num_slots or self.scenario.algorithm == "PIS":
+                # print("prob----->",self.p[self.current_zoi])
+                # self.prob[c] = self.p[self.current_zoi]
+                if self.p[self.current_zoi] > np.random.uniform() or self.scenario.max_time_elapsed == self.scenario.num_slots or self.scenario.algorithm == "PIS":
                     neighbour = None
                     np.random.shuffle(self.current_contacts)
                     for neigid in self.current_contacts:
@@ -366,16 +384,19 @@ class User:
                             if n.id == neigid:
                                 neig = n
                                 if not neig.busy and neig.ongoing_conn == False:
-                                    if self.scenario.algorithm != "PIS" and self.scenario.max_time_elapsed != self.scenario.num_slots:
-                                        if (self.current_zoi == -1 and self.crossing(c)) or (neig.current_zoi == -1 and neig.crossing(c)):
-                                            neighbour = neig
-                                        if self.current_zoi != -1 and neig.current_zoi != -1 and (self.current_zoi == neig.current_zoi):
-                                            neighbour = neig
                                     if self.scenario.algorithm == "PIS" or self.scenario.max_time_elapsed == self.scenario.num_slots:
                                         neighbour = neig
+                                        break
+                                    if self.scenario.algorithm != "PIS" and self.scenario.max_time_elapsed != self.scenario.num_slots:
+                                        if self.current_zoi != -1 and neig.current_zoi != -1:
+                                            neighbour = neig
+                                            break
+                                        if (self.current_zoi == -1 and self.crossing(c)) or (neig.current_zoi == -1 and neig.crossing(c)):
+                                            neighbour = neig
+                                            break
                                 
-                    
                     if neighbour != None:
+                        self.exchange_length = 0
                         # Once we have a new neighbour chosen, we start exchanging, with PIS only if condition is True
                         if self.scenario.algorithm == "PIS":
                             self.PIS(neighbour) 
@@ -386,21 +407,46 @@ class User:
                             for m in self.messages_list:
                                 if m not in neighbour.messages_list: 
                                     self.exchange_list.append(m)
+
+                            self.exchange_length += len(self.exchange_list)
                                    
                             # After choosing the messages that are missing in the peer, we need to shuffle the list
                             np.random.shuffle(self.exchange_list)
                             for m in neighbour.messages_list:
                                 if m not in self.messages_list:
                                     neighbour.exchange_list.append(m)
+
+                            self.exchange_length += len(neighbour.exchange_list)
+                            
+                            indexes = [i for i, n in enumerate(self.rz_visits_info) if n == self.current_zoi]
+                            index = indexes.index(len(self.rz_visits_info)-1)
+                            previous_contents = self.prev_contents[self.current_zoi]
+
+                            t = 5000
+                            self.scenario.alp = np.exp(-(c-self.t_previous)/t)
+                            self.prev_contents[self.current_zoi] = (self.scenario.alp*self.prev_contents[self.current_zoi]) + ((1-self.scenario.alp)*self.exchange_length)
+
+                            self.t_previous = c
+
+                            print("checking-----------------------------", c, self.id)
+                            print("next contents", previous_contents)
+                            print("next contents", self.prev_contents[self.current_zoi])
+
+                            if previous_contents < self.prev_contents[self.current_zoi]:
+                                if self.p[self.current_zoi] >= 0.01:
+                                    self.p[self.current_zoi] -= 0.01
+                            else:
+                                if previous_contents > self.prev_contents[self.current_zoi]:
+                                    if self.p[self.current_zoi] <=0.09:
+                                        self.p[self.current_zoi] += 0.01
+
+                            print("p-------->", self.p[self.current_zoi])
                                     
                             # After choosing the messages that are missing in the peer, we need to shuffle the list
                             np.random.shuffle(neighbour.exchange_list)
                             # Second, exchange the data with peer!!                           
                             self.exchangeData(neighbour,c)
 
-            
-
-                      
 
     # method to allow nodes to exchange within a RZ
     def userContact(self,c):
@@ -440,8 +486,9 @@ class User:
 
                 # Continue looking for neighbours   
                 # In case we want to connect with more than one neighbour we need to run a loop. Now we only select one neighbour from the list.
-                if self.final_stat > 0.5:
+                if self.p[self.current_zoi] > np.random.uniform():
                     neighbour = None
+                    np.random.shuffle(self.current_contacts)
                     for neigid in self.current_contacts:
                         for n in self.scenario.usr_list:
                             if n.id == neigid:
@@ -464,11 +511,35 @@ class User:
                             if m not in self.messages_list:
                                 neighbour.exchange_list.append(m)
 
+                        indexes = [i for i, n in enumerate(self.rz_visits_info) if n == self.current_zoi]
+                        index = indexes.index(len(self.rz_visits_info)-1)
+                        previous_contents = self.prev_contents[self.current_zoi]
+
+
+                        t = 5000
+                        self.scenario.alp = np.exp(-(c-self.t_previous)/t)
+                        self.prev_contents[self.current_zoi] = (self.scenario.alp*self.prev_contents[self.current_zoi]) + ((1-self.scenario.alp)*self.exchange_length)
+
+                        self.t_previous = c                        
+                        
+                        print("checking-----------------------------", c, self.id)
+                        print("next contents", previous_contents)
+                        print("next contents", self.prev_contents[self.current_zoi])
+
+                        if previous_contents < self.prev_contents[self.current_zoi]:
+                            if self.p[self.current_zoi] >= 0.01:
+                                self.p[self.current_zoi] -= 0.01
+
+                        else:
+                            if previous_contents > self.prev_contents[self.current_zoi]:
+                                if self.p[self.current_zoi] <= 0.09:
+                                    self.p[self.current_zoi] += 0.01
+
+                        print("p-------->", self.p[self.current_zoi])
                         # After choosing the messages that are missing in the peer, we need to shuffle the list
                         np.random.shuffle(neighbour.exchange_list)
                         # Second, exchange the data with peer!!
                         self.exchangeData(neighbour,c)
-                            
 
 
     def socialFactorsUpdating(self,c):

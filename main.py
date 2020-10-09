@@ -66,6 +66,7 @@ else:
 store = data["store"]
 days = str(int((num_slots/3600)/24))
 statis = data["statis"]
+alp = data["alp"]
 
 # Do we want to set a seed?
 seed_list = [15482669,15482681,15482683,15482711,15482729,15482941,15482947,15482977,15482993,15483023,15483029,15483067,15483077,15483079,15483089,15483101,15483103,15482743,15482771,15482773,15482783,15482807,15482809,15482827,15482851,15482861,15482893,15482911,15482917,15482923]
@@ -74,8 +75,8 @@ np.random.seed(seed_list[1])
 
 print("Content size ", content_size)
 print("Max memory ", max_memory)
+print("Number of contents ", content_generation_users)
 
-  
 def dumping():
     for u in scenario.usr_list:
         rzs_per_slot_per_user[u.id] = u.rz_visits_info
@@ -88,23 +89,32 @@ def dumping():
         contact_len_mean[1] = u.prev_contact_len_mean[1]
         contact_len_mean[2] = u.prev_contact_len_mean[-1]
 
+        probabilities[u.id] = u.prob
+
+        if u.id not in contacts_per_node.keys():
+            contacts_per_node[u.id] = OrderedDict()
+        contacts_per_node[u.id] = u.dicc_peers
+
 
     ###################### Functions to dump data per simulation #########################
     dump = Dump(scenario,uid)
     dump.userLastPosition()
-    dump.connectionDurationAndMore(contents_per_slot_per_user,rzs_per_slot_per_user,contact_mean,contact_len_mean,a_per_content_only_value)
+    dump.connectionDurationAndMore(contents_per_slot_per_user,rzs_per_slot_per_user,contact_mean,contact_len_mean,a_per_content_only_value,contacts_per_node)
     dump.availabilityPerContent(a_per_content)
     dump.replicasPerContent(replicas)
     dump.nodesZoiPerSlot(nodes_in_zoi)
+    dump.probabilities(probabilities)
+    dump.nodesInRz()
     
 
 # DATA STRUCTURES 
-contacts_per_slot_per_user= OrderedDict()
+contacts_per_node = OrderedDict()
 contents_per_slot_per_user= OrderedDict()
 rzs_per_slot_per_user = OrderedDict()
 contact_len_mean = OrderedDict()
 contact_mean = OrderedDict()
 nodes_in_zoi = OrderedDict()
+probabilities = OrderedDict()
 c = 1 # Slot number
 a_per_content = OrderedDict()
 replicas = OrderedDict()
@@ -115,7 +125,7 @@ num_zois=density_zois
 
 # CREATION OF SCENARIO With num_zois number of zois
 scenario = Scenario(radius_of_replication, max_area,delta,radius_of_tx,channel_rate,num_users,num_zois, traces_folder,
-num_slots,algorithm,max_memory,max_time_elapsed,gamma,statis)
+num_slots,algorithm,max_memory,max_time_elapsed,gamma,statis,alp)
 
 
 # From here on, start printing out to an external file called 'out'
@@ -172,13 +182,14 @@ bar = progressbar.ProgressBar(maxval=num_slots, \
 bar.start()
 ################## ################## Loop per slot into a simulation ################## ##################
 nextHop = 1030
-# scenario.cutTracesDict(0,nextHop)
+if "Paderborn" not in traces_folder:
+    scenario.cutTracesDict(0,nextHop)
 while c < num_slots:
     print("SLOT-->",c)
     bar.update(c)
 
-    # if c % 1000 == 0:
-    #     scenario.cutTracesDict(c,c+nextHop)
+    if c % 1000 == 0 and "Paderborn" not in traces_folder:
+        scenario.cutTracesDict(c,c+nextHop)
 
     if "Paderborn" not in traces_folder:
         scenario.addRemoveNodes(c)
@@ -242,10 +253,10 @@ while c < num_slots:
     for k in scenario.usr_list:
         # run users contact
         if scenario.algorithm == 'out' and scenario.num_slots != scenario.max_time_elapsed:
-            k.computeStatistics(c)
+            # k.computeStatistics(c)
             k.userContactOutIn(c)
         if scenario.algorithm == 'in':
-            k.computeStatistics(c)
+            # k.computeStatistics(c)
             k.userContact(c)
         if scenario.algorithm == 'PIS' or (scenario.algorithm == 'out' and scenario.num_slots == scenario.max_time_elapsed):
             k.userContactOutIn(c)
@@ -342,10 +353,11 @@ while c < num_slots:
         
     
     if c % 20 == 0:
+        contents_per_slot_per_user[c] = OrderedDict()
         for u in scenario.usr_list:
-            if u.id not in contents_per_slot_per_user:
-                contents_per_slot_per_user[u.id]= []
-            contents_per_slot_per_user[u.id].append(len(u.messages_list))
+            if u.id not in contents_per_slot_per_user[c]:
+                contents_per_slot_per_user[c][u.id]= []
+            contents_per_slot_per_user[c][u.id].append(len(u.messages_list))
 
     if c != 0 and c % 1000 == 0:
         dumping()
