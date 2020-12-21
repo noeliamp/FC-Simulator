@@ -134,12 +134,11 @@ f = open('results/'+str(uid)+'/out.txt', 'w')
 sys.stdout = f    
 
 ################## Parse traces in case we are using them
-traces_file = days
 if "Paderborn" in traces_folder:
     scenario.parsePaderbornTraces(traces_folder,traces_file)
 
 if traces_folder == "Rome":
-    scenario.parseRomaTraces(traces_folder,traces_file,days)
+    scenario.parseRomaTraces(traces_folder,traces_file)
 
 if traces_folder == "SanFrancisco":
     scenario.parseSanFranciscoTraces(traces_folder)

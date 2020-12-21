@@ -422,7 +422,7 @@ class User:
                             index = indexes.index(len(self.rz_visits_info)-1)
                             previous_contents = self.prev_contents[self.current_zoi]
 
-                            t = 5000
+                            t = 1000
                             self.scenario.alp = np.exp(-(c-self.t_previous)/t)
                             self.prev_contents[self.current_zoi] = (self.scenario.alp*self.prev_contents[self.current_zoi]) + ((1-self.scenario.alp)*self.exchange_length)
 
@@ -516,7 +516,7 @@ class User:
                         previous_contents = self.prev_contents[self.current_zoi]
 
 
-                        t = 5000
+                        t = 1000
                         self.scenario.alp = np.exp(-(c-self.t_previous)/t)
                         self.prev_contents[self.current_zoi] = (self.scenario.alp*self.prev_contents[self.current_zoi]) + ((1-self.scenario.alp)*self.exchange_length)
 

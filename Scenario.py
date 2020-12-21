@@ -179,7 +179,7 @@ class Scenario:
             user.rz_visits_info.append(user.myFuture[0])
            
     # Traces parser for each scenario, we parse the traces after the scenario creation, depending on which folder (map) and file (specific traces for a given seed in that map)
-    def parseRomaTraces(self, folder, file,dias):
+    def parseRomaTraces(self, folder, file):
         replacementDicc = OrderedDict()
         f=open('traces/' + folder + '/'+ file +'_Rome.txt',"r")
         lines=f.readlines()
@@ -189,7 +189,8 @@ class Scenario:
             time = lp[1].split('-')
             time = time[2].split(':')
             daysHours = time[0].split(' ')
-            days = ((int(daysHours[0])-1)*24)*3600
+            days = ((int(daysHours[0])-(int(file)+(int(file)-1)))*24)*3600
+           
             hours = int(daysHours[1])*3600
             minutes = int(time[1])*60
             if "." in time[2]:
